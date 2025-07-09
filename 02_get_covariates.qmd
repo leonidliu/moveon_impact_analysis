@@ -69,7 +69,37 @@ split_ids <- split_ids %>%
 join_data <- function(ts_table, id_table) {
   ts_table <- ts_table %>%
     select(vb_voterbase_id,
-           vb_vf_g2020)   # Add voter file date
+           vb_tsmart_exact_track,
+           vb_tsmart_exact_address_track,
+           tmc_hh_id,
+           file_date,
+           vb_vf_source_state,
+           vb_tsmart_state,
+           vb_voterbase_registration_status,
+           vb_vf_voter_status,
+           vb_voterbase_dob,
+           vb_voterbase_gender,
+           vb_voterbase_race,
+           civis_race,
+           vb_vf_party,
+           vb_vf_county_name,
+           vb_tsmart_cd,
+           ts_tsmart_partisan_score,
+           ts_tsmart_presidential_general_turnout_score,
+           ts_tsmart_ideology_score,
+           ts_tsmart_college_graduate_score,
+           ts_tsmart_urbanicity,
+           vb_tsmart_address_deliverability_indicator,
+           vb_voterbase_mailable_flag,
+           vb_voterbase_deceased_flag,
+           vb_vf_g2022,
+           vb_vf_g2020,
+           vb_vf_g2018,
+           vb_vf_g2016,
+           vb_vf_p2022,
+           vb_vf_p2020,
+           vb_vf_p2018,
+           vb_vf_p2016)
   
   id_table %>%
     left_join(ts_table, by = "vb_voterbase_id") %>%
