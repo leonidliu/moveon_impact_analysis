@@ -1,0 +1,100 @@
+---
+title: "Get Voter File Covariates"
+author: "Leo Liu"
+date: "`r Sys.Date()`"
+format: markdown_github
+self-contained: true
+editor: source
+execute:
+  echo: false
+message: false
+warning: false
+---
+
+```{r}
+library(tidyverse)
+library(dbplyr)
+library(liutils)
+library(here)
+library(aws.s3)
+library(pins)
+
+# Configuration
+source(here("config.R"))
+
+# Read voterbase_ids
+raw_vb_ids <- "p080_moveon_impact_analysis/month_vf_added.csv" %>%
+  s3read_using(FUN = read_csv,
+               bucket = bucket,
+               object = .)
+
+# Split by voter file dates
+split_ids <- raw_vb_ids %>%
+  
+  # Fix voter file dates
+  mutate(file_name = case_when(
+    month_vf_added == "20240401" ~ "ntl_20240409_temp_historic",  # Not sure, may need to check 3/13 and 5/14 too
+    month_vf_added == "20240701" ~ "ntl_20240709_historic",
+    month_vf_added == "20240801" ~ "ntl_20240813_historic",
+    month_vf_added == "20240901" ~ "ntl_20240910_historic",
+    month_vf_added == "20241001" ~ "ntl_20241008_historic"
+  )) %>%
+  select(-month_vf_added) %>%
+  
+  # Subset names
+  mutate(subset_name = paste0("p080_ids_", file_name)) %>%
+  
+  # BQ full table paths
+  mutate(bq_ts_path = paste0("tmc-data-marts.targetsmart_raw.", file_name),
+         bq_id_path = paste0("prj-research-uxrq.scratch_lliu.", subset_name)) %>%
+  
+  # Nest by voter file month
+  group_by(subset_name, file_name, bq_id_path, bq_ts_path) %>%
+  nest()
+
+# Write IDs to BQ
+walk2(split_ids$subset_name,
+      split_ids$data,
+      ~copy_to(lliu_con,
+               df = .y,
+               name = .x,
+               temporary = F, overwrite = T))
+
+# Add BQ tables to nested df
+split_ids <- split_ids %>%
+  mutate(id_tbl = map(bq_id_path, ~tbl(lliu_con, I(.)))) %>%
+  mutate(ts_tbl = map(bq_ts_path, ~tbl(lliu_con, I(.))))
+
+# Join function
+join_data <- function(ts_table, id_table) {
+  ts_table <- ts_table %>%
+    select(vb_voterbase_id,
+           vb_vf_g2020)   # Add voter file date
+  
+  id_table %>%
+    left_join(ts_table, by = "vb_voterbase_id") %>%
+    collect()
+}
+
+# Join each set of IDs to the appropriate voter file
+split_ids <- split_ids %>% 
+  mutate(joined_data = map2(ts_tbl, id_tbl, join_data))
+
+# Create tidy covariate file
+df <- split_ids %>%
+  ungroup() %>%
+  select(bq_ts_path, joined_data) %>%
+  unnest(joined_data) %>%
+  bind_rows()
+
+# Write to S3
+board %>% pin_write(df, "voter_file_covariates")
+```
+
+## Descriptives
+
+```{r}
+length(unique(df$vb_voterbase_id))
+glimpse(df)
+check_na(df)
+```

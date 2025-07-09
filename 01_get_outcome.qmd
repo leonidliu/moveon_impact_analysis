@@ -44,7 +44,7 @@ df <- lliu_con %>%
   left_join(targetsmart, by = "vb_voterbase_id") %>%
   collect()
 
-# Write CSV to S3
+# Write to S3
 board %>% pin_write(df, "outcome")
 ```
 
