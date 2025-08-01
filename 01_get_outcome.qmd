@@ -18,7 +18,6 @@ library(liutils)
 library(here)
 library(aws.s3)
 library(knitr)
-library(pins)
 
 # Configuration
 source(here("config.R"))
@@ -35,7 +34,7 @@ lliu_con %>% copy_to(df = raw, name = "p080_ids", temporary = F, overwrite = T)
 
 # TargetSmart outcome table
 targetsmart <- lliu_con %>%
-  tbl(I(ts_outcome_table)) %>%   # Double check
+  tbl(I(ts_outcome_table)) %>%
   select(vb_voterbase_id, vb_vf_g2024)
 
 # Subset outcome to experiment IDs
@@ -45,7 +44,10 @@ df <- lliu_con %>%
   collect()
 
 # Write to S3
-board %>% pin_write(df, "outcome")
+s3write_using(df, 
+              FUN = write_rds,
+              bucket = bucket,
+              object = "p080_moveon_impact_analysis/outcome.rds")
 ```
 
 ## Descriptives

@@ -17,7 +17,6 @@ library(dbplyr)
 library(liutils)
 library(here)
 library(aws.s3)
-library(pins)
 
 # Configuration
 source(here("config.R"))
@@ -33,7 +32,7 @@ split_ids <- raw_vb_ids %>%
   
   # Fix voter file dates
   mutate(file_name = case_when(
-    month_vf_added == "20240401" ~ "ntl_20240409_temp_historic",  # Not sure, may need to check 3/13 and 5/14 too
+    month_vf_added == "20240401" ~ "ntl_20240514_historic",  # Missingness minimized with this file
     month_vf_added == "20240701" ~ "ntl_20240709_historic",
     month_vf_added == "20240801" ~ "ntl_20240813_historic",
     month_vf_added == "20240901" ~ "ntl_20240910_historic",
@@ -121,7 +120,10 @@ df <- split_ids %>%
   bind_rows()
 
 # Write to S3
-board %>% pin_write(df, "voter_file_covariates")
+s3write_using(df, 
+              FUN = write_rds,
+              bucket = bucket,
+              object = "p080_moveon_impact_analysis/voter_file_covariates.rds")
 ```
 
 ## Descriptives

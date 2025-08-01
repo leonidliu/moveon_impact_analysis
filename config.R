@@ -23,5 +23,5 @@ lliu_con <- DBI:: dbConnect(bigrquery::bigquery(),
                             billing = "prj-research-uxrq",
                             dataset = "scratch_lliu")
 
-# TS outcome table
-ts_outcome_table <- "tmc-data-marts.targetsmart_raw.ntl_20250513_historic"
+# TS outcome table - April 2025 was the most comprehensive file!
+ts_outcome_table <- "tmc-data-marts.targetsmart_raw.ntl_20250408_historic"
