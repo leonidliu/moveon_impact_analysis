@@ -97,6 +97,7 @@ join_data <- function(ts_table, id_table) {
            vb_vf_g2020,
            vb_vf_g2018,
            vb_vf_g2016,
+           vb_vf_g2014,
            vb_vf_g2012,
            vb_vf_p2022,
            vb_vf_p2020,

@@ -1,9 +1,3 @@
-# Configure pins
-board <- pins::board_s3(bucket = "tmc-research-projects",
-                        prefix = "p080_moveon_impact_analysis/",
-                        region = "us-east-1",
-                        versioned = F)
-
 # Configure AWS credentials
 Sys.setenv("AWS_ACCESS_KEY_ID" = Sys.getenv("TMC_s3_access_key"),
            "AWS_SECRET_ACCESS_KEY" = Sys.getenv("TMC_s3_secret_key"))
