@@ -1,0 +1,162 @@
+---
+title: "4 Balance Checks"
+author: "Andy Zack"
+date: "`r Sys.Date()`"
+format: html
+self-contained: true
+editor: source
+execute:
+  echo: true
+---
+
+## Load Packages
+
+```{r load_packages}
+#| message: false
+
+library(tidyverse)
+library(aws.s3)
+library(here)
+library(scales)
+library(kableExtra)
+library(broom)
+```
+
+## Other Setup
+
+```{r s3_setup}
+Sys.setenv("AWS_ACCESS_KEY_ID" = Sys.getenv("TMC_s3_access_key"),
+           "AWS_SECRET_ACCESS_KEY" = Sys.getenv("TMC_s3_secret_key"))
+
+bucket = "tmc-research-projects"
+```
+
+## Load Data
+
+```{r load_data}
+clean_df <- s3read_using(
+  FUN = read_rds,
+  bucket = bucket,
+  object = "p080_moveon_impact_analysis/descriptive_study/clean_df.rds")
+```
+
+## Balance Table Function
+
+```{r balance_table_function}
+smd_summary_by_group <- function(data, group_var, treatment_var = treatment, 
+                                 treat_label = "Treatment", control_label = "Control") {
+  
+  # Group-level percentages within each treatment group
+  group_percents <- data %>%
+    count({{ treatment_var }}, {{ group_var }}, name = "n") %>%
+    group_by({{ treatment_var }}) %>%
+    mutate(percent = n / sum(n) * 100) %>%
+    ungroup() %>%
+    select(-n) %>%
+    pivot_wider(names_from = {{ treatment_var }}, values_from = percent) %>%
+    rename(Control = !!control_label, Treatment = !!treat_label)
+  
+  # Overall group proportions
+  overall_percents <- data %>%
+    filter({{ treatment_var }} %in% c(treat_label, control_label)) %>%
+    count({{ group_var }}, name = "n") %>%
+    mutate(overall_percent = n / sum(n) * 100) %>%
+    select(-n)
+  
+  # Final output
+  group_percents %>%
+    left_join(overall_percents, by = rlang::as_name(rlang::ensym(group_var))) %>%
+    mutate(SMD = round((Control - Treatment) / overall_percent, 3),
+           Control = round(Control, 1),
+           Treatment = round(Treatment, 1)) %>%
+    select({{ group_var }}, Control, Treatment, SMD)
+}
+```
+
+## Make Balance Tables
+
+```{r categorical_balance_tables}
+smd_summary_by_group(clean_df, target_geography_state) %>% kable()
+# add summary for audience (returning voters vs. young voters)
+# smd_summary_by_group(clean_df, target_type)
+smd_summary_by_group(clean_df, gender) %>% kable()
+smd_summary_by_group(clean_df, race) %>% kable()
+smd_summary_by_group(clean_df, urbanicity) %>% kable()
+smd_summary_by_group(clean_df, age_bin) %>% kable()
+```
+
+```{r continuous_balance_tables}
+clean_df %>%
+  transmute(treatment,
+            `Partisan Score` = ts_tsmart_partisan_score,
+            `Presidential Turnout Score` = ts_tsmart_presidential_general_turnout_score,
+            `College Grad. Score` = ts_tsmart_college_graduate_score,
+            `Voted 2020` = voted_20,
+            `Voted 2022` = voted_22) %>%
+  pivot_longer(cols = c(`Partisan Score`,
+                        `Presidential Turnout Score`,
+                        `College Grad. Score`,
+                        `Voted 2020`,
+                        `Voted 2022`), 
+               names_to = "var", values_to = "value") %>%
+  group_by(var, treatment) %>%
+  summarise(avg = mean(value, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = treatment, values_from = avg) %>%
+  rowwise() %>%
+  mutate(SMD = round((Control - Treatment) / mean(c(Control, Treatment), na.rm = TRUE), digits = 3)) %>%
+  ungroup() %>%
+  mutate(Control = if_else(grepl("Voted", var), 100*Control, Control),
+         Treatment = if_else(grepl("Voted", var), 100* Treatment, Treatment)) %>%
+  kable()
+```
+
+## Run Balance Regression 
+
+```{r balance_regressions}
+# first make dataset with no missing data for the anova that comes later
+model_df <- clean_df %>%
+  select(treat,
+         target_geography_state,
+         ts_tsmart_partisan_score,
+         ts_tsmart_presidential_general_turnout_score,
+         age,
+         urbanicity,
+         gender,
+         race,
+         voted_22,
+         voted_20,
+         voted_p22,
+         voted_p20) %>%
+  filter(complete.cases(.))
+
+# run regression
+balance_lm <- lm(treat ~ 
+                      target_geography_state +
+                      ts_tsmart_partisan_score +
+                      ts_tsmart_partisan_score^2 +
+                      ts_tsmart_presidential_general_turnout_score +
+                      ts_tsmart_presidential_general_turnout_score^2 +
+                      age + 
+                      urbanicity +
+                      gender +
+                      race +
+                      voted_22 +
+                      voted_20 +
+                      voted_p22 +
+                      voted_p20, 
+                    data = model_df)
+
+# print result
+balance_lm %>% 
+  tidy %>% 
+  kable()
+```
+
+## Likelihood Ratio Test
+
+```{r likelihood_ratio_test}
+null_lm <- lm(treat ~ 1, data = model_df)
+anova(null_lm, balance_lm) %>% 
+  tidy() %>%
+  kable()
+```
