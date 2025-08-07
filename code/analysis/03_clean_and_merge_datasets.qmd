@@ -1,0 +1,145 @@
+---
+title: "3 Clean and Merge Datasets"
+author: "Andy Zack"
+date: "`r Sys.Date()`"
+format: html
+self-contained: true
+editor: source
+execute:
+  echo: true
+---
+
+## Summary
+
+This script combines 4 raw datasets into one final dataset that can be used for most of the analysis.
+
+-   `df` is the original \~4M row dataset that MoveOn sent. It contains data on who was attempted and contacted with each mode
+
+-   `covariate_df` has demographics, scores, and vote history for everyone in `df` that matched to the pre-program voter file
+
+-   `outcome_df` shows 2024 vote history for everyone in `df`. This was the main outcome of the experiment
+
+-   `subsample_df` is a list of \~20% of `df` that focuses on most of the people that were actually attempted. This is who we will run the ITT analysis on.
+
+## Load Packages
+
+```{r load_packages}
+#| message: false
+library(tidyverse)
+library(aws.s3)
+library(here)
+library(scales)
+library(kableExtra)
+library(forcats)
+```
+
+## Other Setup
+
+```{r other_setup}
+Sys.setenv("AWS_ACCESS_KEY_ID" = Sys.getenv("TMC_s3_access_key"),
+           "AWS_SECRET_ACCESS_KEY" = Sys.getenv("TMC_s3_secret_key"))
+
+bucket = "tmc-research-projects"
+```
+
+## Load Data
+
+```{r load_data}
+df <- s3read_using(FUN = read_csv,
+                   bucket = bucket,
+                   object = "p080_moveon_impact_analysis/exp2024_ucg_attempts_and_contacts_final.csv")
+covariate_df <- s3read_using(FUN = readRDS,
+                             bucket = bucket,
+                             object = "p080_moveon_impact_analysis/voter_file_covariates.rds")
+outcome_df <- s3read_using(FUN = readRDS,
+                           bucket = bucket,
+                           object = "p080_moveon_impact_analysis/outcome.rds")
+subsample_df <- s3read_using(FUN = read_csv,
+                           bucket = bucket,
+                           object = "p080_moveon_impact_analysis/april_subgroup_for_contact_attempts.csv")
+```
+
+## Create Age Function
+
+```{r age_function}
+calculate_age <- function(from, to) {
+  from_lt = as.POSIXlt(from)
+  to_lt = as.POSIXlt(to)
+  
+  age = to_lt$year - from_lt$year
+  
+  ifelse(to_lt$mon < from_lt$mon |
+           (to_lt$mon == from_lt$mon & to_lt$mday < from_lt$mday),
+         age - 1, age)
+}
+```
+
+## Clean Data
+
+```{r clean_data}
+clean_df <- subsample_df %>%
+  select(vb_voterbase_id) %>%
+  inner_join(df) %>%
+  inner_join(covariate_df) %>%
+  inner_join(outcome_df) %>%
+  #mutate(returning_voter = is.na(vb_vf_g2016) & (!is.na(vb_vf_g2012) | !is.na(vb_vf_g2014))) %>%
+  mutate(young_voter = !is.na(vb_voterbase_dob) & 
+           year(vb_voterbase_dob) > 1980 & 
+           year(vb_voterbase_dob) < 2005) %>%
+  mutate(voted_in_one_of_three = !is.na(vb_vf_g2018) | !is.na(vb_vf_g2020) | !is.na(vb_vf_g2022)) %>%
+  mutate(yob = year(vb_voterbase_dob)) %>%
+  mutate(voted_22 = !is.na(vb_vf_g2022),
+         voted_20 = !is.na(vb_vf_g2020),
+         voted_18 = !is.na(vb_vf_g2018),
+         voted_p22 = !is.na(vb_vf_p2022),
+         voted_p20 = !is.na(vb_vf_p2020),
+         voted_p18 = !is.na(vb_vf_p2018)) %>%
+  mutate(any_phone_attempted = if_else(phone_attempted == 1 | gotv_phone_attempted == 1, 1, 0),
+         any_phone_contacted = if_else(phone_contacted == 1 | gotv_phone_contacted == 1, 1, 0)) %>%
+  mutate(treatment = if_else(treat == 0, "Control", "Treatment")) %>%
+  mutate(in_target_state = vb_vf_reg_state %in% c("AZ", "FL", "GA", "MI", "NC", "NV", "OH", "PA", "WI")) %>%
+  mutate(target_geography = case_when(vb_vf_source_state %in% c("AZ", "FL", "GA", "MI", "NC", "NV", "OH", "PA", "WI") ~ vb_vf_source_state,
+                                      (vb_vf_source_state == "AZ" & vb_vf_cd %in% c("001", "006"))
+                                      | (vb_vf_source_state == "CA" & vb_vf_cd %in% c("013", "022", "027", "045", "047"))
+                                      | (vb_vf_source_state == "CO" & vb_vf_cd %in% c("003", "008"))
+                                      | (vb_vf_source_state == "CT" & vb_vf_cd %in% c("005"))
+                                      | (vb_vf_source_state == "IA" & vb_vf_cd %in% c("003"))
+                                      | (vb_vf_source_state == "IL" & vb_vf_cd %in% c("017"))
+                                      | (vb_vf_source_state == "MI" & vb_vf_cd %in% c("010"))
+                                      | (vb_vf_source_state == "MT" & vb_vf_cd %in% c("001"))
+                                      | (vb_vf_source_state == "NC" & vb_vf_cd %in% c("013"))
+                                      | (vb_vf_source_state == "NE" & vb_vf_cd %in% c("002"))
+                                      | (vb_vf_source_state == "NJ" & vb_vf_cd %in% c("007"))
+                                      | (vb_vf_source_state == "NM" & vb_vf_cd %in% c("002"))
+                                      | (vb_vf_source_state == "NY" & vb_vf_cd %in% c("003", "004", "017", "019", "022"))
+                                      | (vb_vf_source_state == "OR" & vb_vf_cd %in% c("005", "006"))
+                                      | (vb_vf_source_state == "VA" & vb_vf_cd %in% c("002"))
+                                      | (vb_vf_source_state == "WI" & vb_vf_cd %in% c("003")) ~ paste(vb_vf_source_state, vb_vf_cd),
+                                      TRUE ~ "Other")) %>%
+  mutate(target_geography_state = factor(if_else(grepl("0", target_geography), "Targeted CD", target_geography))) %>%
+  mutate(target_geography_state = fct_relevel(target_geography_state, "Targeted CD", "Other", after = Inf)) %>%
+  mutate(gender = case_when(vb_voterbase_gender == "Male" ~ "Men", TRUE ~ "Women"),
+         race = case_when(civis_race == "WHITE" ~ "White",
+                          civis_race == "AFAM" ~ "Black",
+                          civis_race == "HISPANIC" ~ "Latino",
+                          TRUE ~ "Other"),
+         urbanicity = case_when(ts_tsmart_urbanicity %in% c("R1", "R2") ~ "Rural",
+                                ts_tsmart_urbanicity %in% c("S3", "S4") ~ "Suburban",
+                                ts_tsmart_urbanicity %in% c("U5", "U6") ~ "Urban",
+                                TRUE ~ "Urban"),
+         age = pmax(calculate_age(from = vb_voterbase_dob, to = "2024-11-05"),0),
+         age_bin = cut(age, 
+                       breaks = c(0, 29, 44, 64, Inf), 
+                       labels = c("18-29", "30-44", "45-64", "65+"))) %>%
+  mutate(race = factor(race, levels = c("White", "Black", "Latino", "Other")),
+         urbanicity = factor(urbanicity, levels = c("Urban", "Suburban", "Rural")))
+```
+
+## Save Cleaned Data
+
+```{r save_cleaned_dataset}
+s3write_using(x = clean_df, 
+              FUN = saveRDS, 
+              object = "p080_moveon_impact_analysis/descriptive_study/clean_df.rds", 
+              bucket = "tmc-research-projects")
+```
