@@ -1,0 +1,123 @@
+Get Voter File Covariates
+================
+Leo Liu
+8/6/25
+
+## Descriptives
+
+    [1] 4608154
+
+    Rows: 4,608,154
+    Columns: 37
+    $ bq_ts_path                                   <chr> "tmc-data-marts.targetsma…
+    $ vb_voterbase_id                              <chr> "PA-9234919", "PA-1429256…
+    $ vb_tsmart_exact_track                        <chr> "Y29454991650690", "N2945…
+    $ vb_tsmart_exact_address_track                <chr> "Y000000162410549", "Y000…
+    $ tmc_hh_id                                    <blob> <1b, 1c, b8, 81, 2e, 6a,…
+    $ file_date                                    <chr> "20240514", "20240514", "…
+    $ vb_vf_source_state                           <chr> "PA", "PA", "PA", "PA", "…
+    $ vb_tsmart_state                              <chr> "PA", "PA", "PA", "PA", "…
+    $ vb_vf_reg_state                              <chr> "PA", "PA", "PA", "PA", "…
+    $ vb_vf_cd                                     <chr> "001", "001", "007", "005…
+    $ vb_voterbase_registration_status             <chr> "Registered", "Registered…
+    $ vb_vf_voter_status                           <chr> "Active", "Active", "Acti…
+    $ vb_voterbase_dob                             <date> 1987-04-28, 2001-07-19, …
+    $ vb_voterbase_gender                          <chr> "Female", "Female", "Fema…
+    $ vb_voterbase_race                            <chr> "W", "W", "W", "W", "W", …
+    $ civis_race                                   <chr> "WHITE", "WHITE", "WHITE"…
+    $ vb_vf_party                                  <chr> "Democrat", "Democrat", "…
+    $ vb_vf_county_name                            <chr> "BUCKS", "BUCKS", "CARBON…
+    $ vb_tsmart_cd                                 <chr> "001", "001", "007", "005…
+    $ ts_tsmart_partisan_score                     <dbl> 99.2, 99.5, 96.9, 95.4, 9…
+    $ ts_tsmart_presidential_general_turnout_score <dbl> 43.5, 51.2, 81.6, 52.8, 5…
+    $ ts_tsmart_ideology_score                     <dbl> 59.6, 68.8, 43.1, 57.6, 6…
+    $ ts_tsmart_college_graduate_score             <dbl> 58.3, 20.9, 39.0, 38.4, 3…
+    $ ts_tsmart_urbanicity                         <chr> "U5", "U5", "R2", "U5", "…
+    $ vb_tsmart_address_deliverability_indicator   <int> 1, 1, 1, 1, 1, 1, 1, 1, 1…
+    $ vb_voterbase_mailable_flag                   <chr> "Yes", "Yes", "Yes", "Yes…
+    $ vb_voterbase_deceased_flag                   <chr> NA, NA, NA, NA, NA, NA, N…
+    $ vb_vf_g2022                                  <chr> NA, NA, "P", NA, NA, "P",…
+    $ vb_vf_g2020                                  <chr> "A", "P", "P", "P", "M", …
+    $ vb_vf_g2018                                  <chr> NA, NA, "P", NA, "P", "P"…
+    $ vb_vf_g2016                                  <chr> NA, NA, "R", NA, NA, "R",…
+    $ vb_vf_g2014                                  <chr> NA, NA, NA, NA, NA, NA, N…
+    $ vb_vf_g2012                                  <chr> NA, NA, NA, NA, NA, NA, N…
+    $ vb_vf_p2022                                  <chr> NA, NA, NA, NA, NA, NA, N…
+    $ vb_vf_p2020                                  <chr> NA, NA, NA, NA, NA, NA, "…
+    $ vb_vf_p2018                                  <chr> NA, NA, NA, NA, NA, NA, N…
+    $ vb_vf_p2016                                  <chr> NA, NA, NA, NA, NA, "R", …
+
+                                      bq_ts_path 
+                                               0 
+                                 vb_voterbase_id 
+                                               0 
+                           vb_tsmart_exact_track 
+                                           53965 
+                   vb_tsmart_exact_address_track 
+                                           53965 
+                                       tmc_hh_id 
+                                           54005 
+                                       file_date 
+                                           53965 
+                              vb_vf_source_state 
+                                           53965 
+                                 vb_tsmart_state 
+                                           53999 
+                                 vb_vf_reg_state 
+                                           53998 
+                                        vb_vf_cd 
+                                           55112 
+                vb_voterbase_registration_status 
+                                           53965 
+                              vb_vf_voter_status 
+                                           53965 
+                                vb_voterbase_dob 
+                                           64772 
+                             vb_voterbase_gender 
+                                           53965 
+                               vb_voterbase_race 
+                                           53965 
+                                      civis_race 
+                                          244837 
+                                     vb_vf_party 
+                                           53965 
+                               vb_vf_county_name 
+                                           53965 
+                                    vb_tsmart_cd 
+                                          107151 
+                        ts_tsmart_partisan_score 
+                                           53965 
+    ts_tsmart_presidential_general_turnout_score 
+                                           53965 
+                        ts_tsmart_ideology_score 
+                                           61842 
+                ts_tsmart_college_graduate_score 
+                                           61842 
+                            ts_tsmart_urbanicity 
+                                           55892 
+      vb_tsmart_address_deliverability_indicator 
+                                           53965 
+                      vb_voterbase_mailable_flag 
+                                           53965 
+                      vb_voterbase_deceased_flag 
+                                         4608154 
+                                     vb_vf_g2022 
+                                         2619006 
+                                     vb_vf_g2020 
+                                         1004079 
+                                     vb_vf_g2018 
+                                         2919354 
+                                     vb_vf_g2016 
+                                         3663859 
+                                     vb_vf_g2014 
+                                         4084049 
+                                     vb_vf_g2012 
+                                         3301495 
+                                     vb_vf_p2022 
+                                         4102796 
+                                     vb_vf_p2020 
+                                         3739094 
+                                     vb_vf_p2018 
+                                         4278179 
+                                     vb_vf_p2016 
+                                         4268998 

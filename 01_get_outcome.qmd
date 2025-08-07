@@ -1,0 +1,60 @@
+---
+title: "Get Outcome"
+author: "Leo Liu"
+date: "`r Sys.Date()`"
+format: markdown_github
+self-contained: true
+editor: source
+execute:
+  echo: false
+message: false
+warning: false
+---
+
+```{r}
+library(tidyverse)
+library(dbplyr)
+library(liutils)
+library(here)
+library(aws.s3)
+library(knitr)
+
+# Configuration
+source(here("config.R"))
+
+# Read all experiment IDs
+raw <- "p080_moveon_impact_analysis/month_vf_added.csv" %>%
+  s3read_using(FUN = read_csv,
+               bucket = bucket,
+               object = .) %>%
+  distinct(vb_voterbase_id)
+
+# Copy experiment IDs to scratch_lliu
+lliu_con %>% copy_to(df = raw, name = "p080_ids", temporary = F, overwrite = T)
+
+# TargetSmart outcome table
+targetsmart <- lliu_con %>%
+  tbl(I(ts_outcome_table)) %>%
+  select(vb_voterbase_id, vb_vf_g2024)
+
+# Subset outcome to experiment IDs
+df <- lliu_con %>%
+  tbl(I("prj-research-uxrq.scratch_lliu.p080_ids")) %>%
+  left_join(targetsmart, by = "vb_voterbase_id") %>%
+  collect()
+
+# Write to S3
+s3write_using(df, 
+              FUN = write_rds,
+              bucket = bucket,
+              object = "p080_moveon_impact_analysis/outcome.rds")
+```
+
+## Descriptives
+
+```{r}
+length(unique(df$vb_voterbase_id))
+glimpse(df)
+check_na(df)
+count(df, vb_vf_g2024) %>% arrange(-n) %>% kable()
+```

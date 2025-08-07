@@ -1,0 +1,21 @@
+# Configure AWS credentials
+Sys.setenv("AWS_ACCESS_KEY_ID" = Sys.getenv("TMC_s3_access_key"),
+           "AWS_SECRET_ACCESS_KEY" = Sys.getenv("TMC_s3_secret_key"))
+
+# Set S3 bucket
+bucket <- "tmc-research-projects"
+
+# Configure Google Sheets authentication
+googlesheets4::gs4_auth(email = Sys.getenv("EMAIL"))
+
+# BigQuery authentication
+bigrquery::bq_auth(email = Sys.getenv("EMAIL"))
+
+# Connect to scratch_lliu
+lliu_con <- DBI:: dbConnect(bigrquery::bigquery(),
+                            project = "prj-research-uxrq",
+                            billing = "prj-research-uxrq",
+                            dataset = "scratch_lliu")
+
+# TS outcome table - April 2025 was the most comprehensive file!
+ts_outcome_table <- "tmc-data-marts.targetsmart_raw.ntl_20250408_historic"
