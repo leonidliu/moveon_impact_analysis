@@ -1,0 +1,423 @@
+---
+title: "April Subset Identifying Randomization Issues"
+author: "Andy Zack"
+date: "`r Sys.Date()`"
+format: html
+self-contained: true
+editor: source
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+## Summary
+
+This document explores some unexplained issues with the balance between people who were attempted and who were not attempted. Ideally, we'd be able to do a TOT analysis on this experiment because the majority of the people that were initially assigned to treatment were never treated. To do the TOT analysis in the most simple way, we'd want to see that the people in the treatment group being randomly selected to actually be treated. If this were the case, the treated people would have similar demographics to the treatment group individuals who were not actually treated.
+
+This version of the code uses the April Subset that Asna sent over. It only includes people who skipped the 2022 election. However MoveOn's definition of who voted seems unusual to me, so this still includes some people who may have voted.
+
+```{r packages}
+library(tidyverse)
+library(aws.s3)
+library(here)
+library(scales)
+library(kableExtra)
+library(broom)
+```
+
+```{r setup}
+Sys.setenv("AWS_ACCESS_KEY_ID" = Sys.getenv("TMC_s3_access_key"),
+           "AWS_SECRET_ACCESS_KEY" = Sys.getenv("TMC_s3_secret_key"))
+
+bucket = "tmc-research-projects"
+```
+
+```{r load_data}
+df <- s3read_using(FUN = read_csv,
+                   bucket = bucket,
+                   object = "p080_moveon_impact_analysis/exp2024_ucg_attempts_and_contacts_final.csv")
+subsample_df <- s3read_using(FUN = read_csv,
+                           bucket = bucket,
+                           object = "p080_moveon_impact_analysis/april_subgroup_for_contact_attempts.csv")
+covariate_df <- s3read_using(FUN = readRDS,
+                             bucket = bucket,
+                             object = "p080_moveon_impact_analysis/voter_file_covariates.rds")
+outcome_df <- s3read_using(FUN = readRDS,
+                           bucket = bucket,
+                           object = "p080_moveon_impact_analysis/outcome.rds")
+```
+
+Here, we confirm that the subset has only voterbase IDs from the original dataset and that the treatment assignments are always the same. It also checks what % of contacts and attempts on the orignal audience came from this subset.
+
+```{r check_subset}
+table(subsample_df$vb_voterbase_id %in% df$vb_voterbase_id)
+
+subsample_df %>%
+  inner_join(df, by = "vb_voterbase_id") %>% 
+  mutate(treatments_match = treat.x==treat.y) %>%
+  count(treatments_match)
+```
+
+```{r clean_data}
+combined_df <- subsample_df %>%
+  select(vb_voterbase_id) %>%
+  inner_join(df) %>%
+  inner_join(covariate_df) %>%
+  inner_join(outcome_df) %>%
+  # mutate(returning_voter = is.na(vb_vf_g2016) & (!is.na(vb_vf_g2012) | !is.na(vb_vf_g2014))) %>%
+  mutate(young_voter = !is.na(vb_voterbase_dob) & 
+           year(vb_voterbase_dob) > 1980 & 
+           year(vb_voterbase_dob) < 2005) %>%
+  mutate(voted_in_one_of_three = !is.na(vb_vf_g2018) | !is.na(vb_vf_g2020) | !is.na(vb_vf_g2022)) %>%
+  mutate(in_target_state = vb_vf_reg_state %in% c("AZ", "FL", "GA", "MI", "NC", "NV", "PA", "WI")) %>%
+  mutate(yob = year(vb_voterbase_dob)) %>%
+  mutate(voted_22 = !is.na(vb_vf_g2022),
+         voted_20 = !is.na(vb_vf_g2020),
+         voted_18 = !is.na(vb_vf_g2018)) %>%
+  mutate(any_phone_attempted = if_else(phone_attempted == 1 | gotv_phone_attempted == 1, 1, 0),
+         any_phone_contacted = if_else(phone_contacted == 1 | gotv_phone_contacted == 1, 1, 0))
+```
+
+## What percent of attempts and contacts are in subset
+
+Of the original attempts and contacts from the first \~4M list, what percent show up in the subset we are dealing with?
+
+```{r subset_attempts_and_contacts}
+tibble(mode = c("phone", "gotv_phone", "postcard", "experiment"),
+       attempts_in_subset = c(sum(combined_df$phone_attempted) / sum(df$phone_attempted),
+                              sum(combined_df$gotv_phone_attempted) / sum(df$gotv_phone_attempted),
+                              sum(combined_df$postcard_attempted) / sum(df$postcard_attempted),
+                              sum(combined_df$exp_attempted) / sum(df$exp_attempted)),
+       contacts_in_subset = c(sum(combined_df$phone_contacted) / sum(df$phone_contacted),
+                              sum(combined_df$gotv_phone_contacted) / sum(df$gotv_phone_contacted),
+                              sum(combined_df$postcard_contacted) / sum(df$postcard_contacted),
+                              sum(combined_df$exp_contacted) / sum(df$exp_contacted)))
+```
+
+## Monthly Lists
+
+For this markdown, I removed the part where we check contacts by which month the list was pulled because this dataset only comes from the original April List
+
+## Overall Counts
+
+```{r}
+nrow(combined_df)
+combined_df %>%
+  group_by(treat) %>%
+  summarise(n = n(),
+            phone_attempted = sum(phone_attempted),
+            gotv_phone_attempted = sum(gotv_phone_attempted),
+            any_phone_attempted = sum(any_phone_attempted),
+            postcard_attempted = sum(postcard_attempted),
+            exp_attempted = sum(exp_attempted)) %>%
+  kable()
+```
+
+```{r}
+nrow(combined_df)
+combined_df %>%
+  group_by(treat) %>%
+  summarise(n = n(),
+            phone_contacted = sum(phone_contacted),
+            gotv_phone_contacted = sum(gotv_phone_contacted),
+            any_phone_contacted = sum(any_phone_contacted),
+            postcard_contacted = sum(postcard_contacted),
+            exp_contacted = sum(exp_contacted)) %>%
+  kable()
+```
+
+## Balance Between Attempted People and Non-attempted
+
+Our initial understanding was that within the treatment group, people were randomly chosen (using simple random sampling without replacement) to be targeted in an actual phonebank or postcard campaign. If this were how the randomization was done, the people who were attempted should have nearly identical demographic characteristics as the people within treatment who were not attempted. This does not appear to be the case, though they are much closer than before.
+
+eThe most unbalanced is the GOTV phone group. I asked Asna if they possibly filtered out people who had already voted and she confirmed that they did. But they did not filter out people from the postcard and regular phone programs because those occurred before (many) people had voted.
+
+The first table shows control vs. treatment demographics, regardless of attempts or contacts. This does appear to be well-balanced.
+
+```{r demographic_balance}
+combined_df %>% 
+  group_by(treat) %>%
+  summarise(n = n(),
+            partisan = mean(ts_tsmart_partisan_score, na.rm = T),
+            ideology = mean(ts_tsmart_ideology_score, na.rm = T),
+            turnout = mean(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            college = mean(ts_tsmart_college_graduate_score, na.rm = T),
+            female = percent(mean(vb_voterbase_gender == "Female", na.rm = T), accuracy = .1),
+            voted22 = percent(mean(!is.na(vb_vf_g2022)), accuracy = .1),
+            voted20 = percent(mean(!is.na(vb_vf_g2020)), accuracy = .1),
+            voted18 = percent(mean(!is.na(vb_vf_g2018)), accuracy = .1),
+            #returning_voters = percent(mean(returning_voter, accuracy = .1)),
+            young_voter = percent(mean(young_voter), accuracy = .1),
+            voted_in_one_of_three = percent(mean(voted_in_one_of_three), accuracy = .1),
+            in_target_state = percent(mean(in_target_state), accuracy = .1)) %>%
+  kable()
+
+combined_df %>% 
+  filter(treat == 1) %>%
+  group_by(postcard_attempted) %>%
+  summarise(n = n(),
+            partisan = mean(ts_tsmart_partisan_score, na.rm = T),
+            ideology = mean(ts_tsmart_ideology_score, na.rm = T),
+            turnout = mean(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            college = mean(ts_tsmart_college_graduate_score, na.rm = T),
+            female = percent(mean(vb_voterbase_gender == "Female", na.rm = T), accuracy = .1),
+            voted22 = percent(mean(!is.na(vb_vf_g2022)), accuracy = .1),
+            voted20 = percent(mean(!is.na(vb_vf_g2020)), accuracy = .1),
+            voted18 = percent(mean(!is.na(vb_vf_g2018)), accuracy = .1),
+            #returning_voters = percent(mean(returning_voter, accuracy = .1)),
+            young_voter = percent(mean(young_voter), accuracy = .1),
+            voted_in_one_of_three = percent(mean(voted_in_one_of_three), accuracy = .1),
+            in_target_state = percent(mean(in_target_state), accuracy = .1)) %>%
+  kable()
+
+combined_df %>% 
+  filter(treat == 1) %>%
+  group_by(gotv_phone_attempted) %>%
+  summarise(n = n(),
+            partisan = mean(ts_tsmart_partisan_score, na.rm = T),
+            ideology = mean(ts_tsmart_ideology_score, na.rm = T),
+            turnout = mean(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            college = mean(ts_tsmart_college_graduate_score, na.rm = T),
+            female = percent(mean(vb_voterbase_gender == "Female", na.rm = T), accuracy = .1),
+            voted22 = percent(mean(!is.na(vb_vf_g2022)), accuracy = .1),
+            voted20 = percent(mean(!is.na(vb_vf_g2020)), accuracy = .1),
+            voted18 = percent(mean(!is.na(vb_vf_g2018)), accuracy = .1),
+            #returning_voters = percent(mean(returning_voter, accuracy = .1)),
+            young_voter = percent(mean(young_voter), accuracy = .1),
+            voted_in_one_of_three = percent(mean(voted_in_one_of_three), accuracy = .1),
+            in_target_state = percent(mean(in_target_state), accuracy = .1)) %>%
+  kable()
+
+combined_df %>% 
+  filter(treat == 1) %>%
+  group_by(phone_attempted) %>%
+  summarise(n = n(),
+            partisan = mean(ts_tsmart_partisan_score, na.rm = T),
+            ideology = mean(ts_tsmart_ideology_score, na.rm = T),
+            turnout = mean(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            college = mean(ts_tsmart_college_graduate_score, na.rm = T),
+            female = percent(mean(vb_voterbase_gender == "Female", na.rm = T), accuracy = .1),
+            voted22 = percent(mean(!is.na(vb_vf_g2022)), accuracy = .1),
+            voted20 = percent(mean(!is.na(vb_vf_g2020)), accuracy = .1),
+            voted18 = percent(mean(!is.na(vb_vf_g2018)), accuracy = .1),
+            #returning_voters = percent(mean(returning_voter, accuracy = .1)),
+            young_voter = percent(mean(young_voter), accuracy = .1),
+            voted_in_one_of_three = percent(mean(voted_in_one_of_three), accuracy = .1),
+            in_target_state = percent(mean(in_target_state), accuracy = .1)) %>%
+  kable()
+```
+
+## Regressions To Check Balance
+
+Even though some of the tables above seem balanced, the regression shows significant differences between attempted and un-attempted people.
+
+```{r}
+model_df <- combined_df %>% 
+    select(gotv_phone_attempted,
+         phone_attempted,
+         postcard_attempted,
+         ts_tsmart_partisan_score,
+         ts_tsmart_ideology_score,
+         ts_tsmart_presidential_general_turnout_score,
+         ts_tsmart_college_graduate_score,
+         vb_voterbase_gender,
+         voted_22,
+         voted_20,
+         voted_18,
+         young_voter,
+         vb_vf_reg_state) %>%
+  filter(complete.cases(.))
+```
+
+```{r}
+gotv_phone_lm <- lm(gotv_phone_attempted ~ 
+                 ts_tsmart_partisan_score +
+                 ts_tsmart_ideology_score +
+                 ts_tsmart_presidential_general_turnout_score +
+                 ts_tsmart_college_graduate_score +
+                 vb_voterbase_gender +
+                 voted_22 +
+                 voted_20 +
+                 voted_18 +
+                 young_voter +
+                 vb_vf_reg_state, data = model_df)
+
+gotv_phone_null_lm <- lm(gotv_phone_attempted ~ 1, data = model_df)
+gotv_phone_lm %>% tidy %>% kable()
+anova(gotv_phone_null_lm, gotv_phone_lm)
+```
+
+```{r}
+phone_lm <- lm(phone_attempted ~ 
+                 ts_tsmart_partisan_score +
+                 ts_tsmart_ideology_score +
+                 ts_tsmart_presidential_general_turnout_score +
+                 ts_tsmart_college_graduate_score +
+                 vb_voterbase_gender +
+                 voted_22 +
+                 voted_20 +
+                 voted_18 +
+                 young_voter +
+                 vb_vf_reg_state, data = model_df)
+
+phone_null_lm <- lm(phone_attempted ~ 1, data = model_df)
+phone_lm %>% tidy %>% kable()
+anova(phone_null_lm, phone_lm)
+```
+
+```{r}
+postcard_lm <- lm(postcard_attempted ~ 
+                 ts_tsmart_partisan_score +
+                 ts_tsmart_ideology_score +
+                 ts_tsmart_presidential_general_turnout_score +
+                 ts_tsmart_college_graduate_score +
+                 vb_voterbase_gender +
+                 voted_22 +
+                 voted_20 +
+                 voted_18 +
+                 young_voter +
+                 vb_vf_reg_state, data = model_df)
+
+postcard_null_lm <- lm(postcard_attempted ~ 1, data = model_df)
+postcard_lm %>% tidy %>% kable()
+anova(postcard_null_lm, postcard_lm)
+```
+
+## Were Targeting Criteria Used in the Sub-Sampling Phase
+
+These tables show min and max of several continuous variables, broken out by whether the person was attempted. The same table is printed 4 times for overall, phone, GOTV phone, and postcard. Everything here seems fine.
+
+```{r min_max_tables}
+# Did you target with other criteria? -------------------------------------
+combined_df %>%
+  group_by(exp_attempted) %>%
+  summarise(n = n(),
+            min_partisan = min(ts_tsmart_partisan_score, na.rm = T),
+            max_partisan = max(ts_tsmart_partisan_score, na.rm = T),
+            min_ideology = min(ts_tsmart_ideology_score, na.rm = T),
+            max_ideology = max(ts_tsmart_ideology_score, na.rm = T),
+            min_turnout = min(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            max_turnout = max(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            min_college = min(ts_tsmart_college_graduate_score, na.rm = T),
+            max_college = max(ts_tsmart_college_graduate_score, na.rm = T)) %>%
+  kable()
+
+combined_df %>%
+  group_by(postcard_attempted) %>%
+  summarise(n = n(),
+            min_partisan = min(ts_tsmart_partisan_score, na.rm = T),
+            max_partisan = max(ts_tsmart_partisan_score, na.rm = T),
+            min_ideology = min(ts_tsmart_ideology_score, na.rm = T),
+            max_ideology = max(ts_tsmart_ideology_score, na.rm = T),
+            min_turnout = min(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            max_turnout = max(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            min_college = min(ts_tsmart_college_graduate_score, na.rm = T),
+            max_college = max(ts_tsmart_college_graduate_score, na.rm = T)) %>%
+  kable()
+
+combined_df %>%
+  group_by(phone_attempted) %>%
+  summarise(n = n(),
+            min_partisan = min(ts_tsmart_partisan_score, na.rm = T),
+            max_partisan = max(ts_tsmart_partisan_score, na.rm = T),
+            min_ideology = min(ts_tsmart_ideology_score, na.rm = T),
+            max_ideology = max(ts_tsmart_ideology_score, na.rm = T),
+            min_turnout = min(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            max_turnout = max(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            min_college = min(ts_tsmart_college_graduate_score, na.rm = T),
+            max_college = max(ts_tsmart_college_graduate_score, na.rm = T)) %>%
+  kable()
+
+combined_df %>%
+  group_by(gotv_phone_attempted) %>%
+  summarise(n = n(),
+            min_partisan = min(ts_tsmart_partisan_score, na.rm = T),
+            max_partisan = max(ts_tsmart_partisan_score, na.rm = T),
+            min_ideology = min(ts_tsmart_ideology_score, na.rm = T),
+            max_ideology = max(ts_tsmart_ideology_score, na.rm = T),
+            min_turnout = min(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            max_turnout = max(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            min_college = min(ts_tsmart_college_graduate_score, na.rm = T),
+            max_college = max(ts_tsmart_college_graduate_score, na.rm = T)) %>%
+  kable()
+```
+
+Next, in addition to just printing minimums and maximums, we can look at histograms to see the whole distribution and how it varies between attempted people and non-attempted people. The three set of histograms are for gotv phone, phone, and postcard.
+
+```{r histograms}
+# Make Histograms ---------------------------------------------------------
+combined_df %>%
+  mutate(phone_attempted = if_else(phone_attempted==1, "attempted", "not attempted")) %>%
+  pivot_longer(cols = c(ts_tsmart_partisan_score, 
+                      ts_tsmart_ideology_score, 
+                      ts_tsmart_presidential_general_turnout_score,
+                      yob),
+             names_to = "score_type",
+             values_to = "score") %>%
+  ggplot(aes(x = score)) +
+  geom_histogram() +
+  facet_grid(phone_attempted ~ score_type, scales = "free")
+
+combined_df %>%
+  mutate(gotv_phone_attempted = if_else(phone_attempted==1, "attempted", "not attempted")) %>%
+  pivot_longer(cols = c(ts_tsmart_partisan_score, 
+                      ts_tsmart_ideology_score, 
+                      ts_tsmart_presidential_general_turnout_score,
+                      yob),
+             names_to = "score_type",
+             values_to = "score") %>%
+  ggplot(aes(x = score)) +
+  geom_histogram() +
+  facet_grid(gotv_phone_attempted ~ score_type, scales = "free")
+
+combined_df %>%
+  mutate(postcard_attempted = if_else(phone_attempted==1, "attempted", "not attempted")) %>%
+  pivot_longer(cols = c(ts_tsmart_partisan_score, 
+                        ts_tsmart_ideology_score, 
+                        ts_tsmart_presidential_general_turnout_score,
+                        yob),
+               names_to = "score_type",
+               values_to = "score") %>%
+  ggplot(aes(x = score)) +
+  geom_histogram() +
+  facet_grid(postcard_attempted ~ score_type, scales = "free")
+```
+
+This histograms look much better than they did with the original dataset that we had.
+
+## State Distributions
+
+It seems like there are some states where they did not attempt anyone at all. Asna says that the tier 1 states that they targeted were: AZ, FL, GA, MI, NC, NV, PA, WI, plus CDs in several other states.
+
+```{r attempts_by_state}
+combined_df %>%
+    count(phone_attempted, vb_vf_reg_state) %>% 
+  mutate(phone_attempted = if_else(phone_attempted == 1, "attempted", "not_attempted")) %>%
+  pivot_wider(names_from = phone_attempted, values_from = n) %>% 
+  mutate(attempted = replace_na(attempted, replace = 0)) %>%
+  mutate(perc = attempted / (attempted + not_attempted)) %>%
+  arrange(-perc) %>%
+  mutate(perc = percent(perc, accuracy = .1)) %>%
+  kable()
+
+combined_df %>%
+    count(postcard_attempted, vb_vf_reg_state) %>% 
+  mutate(postcard_attempted = if_else(postcard_attempted == 1, "attempted", "not_attempted")) %>%
+  pivot_wider(names_from = postcard_attempted, values_from = n) %>% 
+  mutate(attempted = replace_na(attempted, replace = 0)) %>%
+  mutate(perc = attempted / (attempted + not_attempted)) %>%
+  arrange(-perc) %>%
+  mutate(perc = percent(perc, accuracy = .1)) %>%
+  kable()
+
+combined_df %>%
+    count(gotv_phone_attempted, vb_vf_reg_state) %>% 
+  mutate(gotv_phone_attempted = if_else(gotv_phone_attempted == 1, "attempted", "not_attempted")) %>%
+  pivot_wider(names_from = gotv_phone_attempted, values_from = n) %>% 
+  mutate(attempted = replace_na(attempted, replace = 0)) %>%
+  mutate(perc = attempted / (attempted + not_attempted)) %>%
+  arrange(-perc) %>%
+  mutate(perc = percent(perc, accuracy = .1)) %>%
+  kable()
+```
