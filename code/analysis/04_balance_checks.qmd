@@ -113,6 +113,8 @@ clean_df %>%
   ungroup() %>%
   mutate(Control = if_else(grepl("Voted", var), 100*Control, Control),
          Treatment = if_else(grepl("Voted", var), 100* Treatment, Treatment)) %>%
+  mutate(Control = round(Control, 1),
+         Treatment = round(Treatment, 1)) %>%
   kable()
 ```
 

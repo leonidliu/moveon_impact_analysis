@@ -3439,7 +3439,9 @@ vertical-align: -.125em;
 <span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Control =</span> <span class="fu">if_else</span>(<span class="fu">grepl</span>(<span class="st">&quot;Voted&quot;</span>, var), <span class="dv">100</span><span class="sc">*</span>Control, Control),</span>
 <span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>         <span class="at">Treatment =</span> <span class="fu">if_else</span>(<span class="fu">grepl</span>(<span class="st">&quot;Voted&quot;</span>, var), <span class="dv">100</span><span class="sc">*</span> Treatment, Treatment)) <span class="sc">%&gt;%</span></span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Control =</span> <span class="fu">round</span>(Control, <span class="dv">1</span>),</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>         <span class="at">Treatment =</span> <span class="fu">round</span>(Treatment, <span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -3453,32 +3455,32 @@ vertical-align: -.125em;
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">College Grad. Score</td>
-<td style="text-align: right;">39.432292</td>
-<td style="text-align: right;">39.479712</td>
+<td style="text-align: right;">39.4</td>
+<td style="text-align: right;">39.5</td>
 <td style="text-align: right;">-0.001</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Partisan Score</td>
-<td style="text-align: right;">92.814353</td>
-<td style="text-align: right;">92.773564</td>
+<td style="text-align: right;">92.8</td>
+<td style="text-align: right;">92.8</td>
 <td style="text-align: right;">0.000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Presidential Turnout Score</td>
-<td style="text-align: right;">49.652315</td>
-<td style="text-align: right;">49.648632</td>
+<td style="text-align: right;">49.7</td>
+<td style="text-align: right;">49.6</td>
 <td style="text-align: right;">0.000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Voted 2020</td>
-<td style="text-align: right;">93.703506</td>
-<td style="text-align: right;">93.794235</td>
+<td style="text-align: right;">93.7</td>
+<td style="text-align: right;">93.8</td>
 <td style="text-align: right;">-0.001</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Voted 2022</td>
-<td style="text-align: right;">8.179263</td>
-<td style="text-align: right;">8.163376</td>
+<td style="text-align: right;">8.2</td>
+<td style="text-align: right;">8.2</td>
 <td style="text-align: right;">0.002</td>
 </tr>
 </tbody>
