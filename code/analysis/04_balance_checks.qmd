@@ -57,25 +57,26 @@ smd_summary_by_group <- function(data, group_var, treatment_var = treatment,
   group_percents <- data %>%
     count({{ treatment_var }}, {{ group_var }}, name = "n") %>%
     group_by({{ treatment_var }}) %>%
-    mutate(percent = n / sum(n) * 100) %>%
+    mutate(prop = n / sum(n)) %>%
     ungroup() %>%
     select(-n) %>%
-    pivot_wider(names_from = {{ treatment_var }}, values_from = percent) %>%
+    pivot_wider(names_from = {{ treatment_var }}, values_from = prop) %>%
     rename(Control = !!control_label, Treatment = !!treat_label)
-  
-  # Overall group proportions
-  overall_percents <- data %>%
-    filter({{ treatment_var }} %in% c(treat_label, control_label)) %>%
-    count({{ group_var }}, name = "n") %>%
-    mutate(overall_percent = n / sum(n) * 100) %>%
-    select(-n)
+
+  # Add group sizes by treatment (for n-weighted pooling)
+  group_sizes <- data %>%
+    count({{ treatment_var }}, {{ group_var }}, name = "n") %>%
+    pivot_wider(names_from = {{ treatment_var }}, values_from = n) %>%
+    rename(n_Control = !!control_label, n_Treatment = !!treat_label)
   
   # Final output
   group_percents %>%
-    left_join(overall_percents, by = rlang::as_name(rlang::ensym(group_var))) %>%
-    mutate(SMD = round((Control - Treatment) / overall_percent, 3),
-           Control = round(Control, 1),
-           Treatment = round(Treatment, 1)) %>%
+    left_join(group_sizes, by = rlang::as_name(rlang::ensym(group_var))) %>%
+    mutate(SMD = round((Treatment - Control) /
+                         sqrt(((n_Treatment - 1) * Treatment * (1 - Treatment) + (n_Control  - 1) * Control  * (1 - Control)) /
+                                (n_Treatment + n_Control - 2)), 3),
+           Control = round(Control * 100, 1),
+           Treatment = round(Treatment * 100, 1)) %>%
     select({{ group_var }}, Control, Treatment, SMD)
 }
 ```
@@ -84,8 +85,6 @@ smd_summary_by_group <- function(data, group_var, treatment_var = treatment,
 
 ```{r categorical_balance_tables}
 smd_summary_by_group(clean_df, target_geography_state) %>% kable()
-# add summary for audience (returning voters vs. young voters)
-# smd_summary_by_group(clean_df, target_type)
 smd_summary_by_group(clean_df, gender) %>% kable()
 smd_summary_by_group(clean_df, race) %>% kable()
 smd_summary_by_group(clean_df, urbanicity) %>% kable()
