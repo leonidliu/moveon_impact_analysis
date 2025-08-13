@@ -32,11 +32,19 @@ bucket = "tmc-research-projects"
 
 ## Load Data
 
+For the balance checks, I'm dropping the roughly 3K people that we were not able to join to the dataset.
+
 ```{r load_data}
 clean_df <- s3read_using(
   FUN = read_rds,
   bucket = bucket,
   object = "p080_moveon_impact_analysis/clean_df.rds")
+
+nrow(clean_df)
+
+clean_df <- filter(clean_df, !is.na(vb_tsmart_exact_track))
+
+nrow(clean_df)
 ```
 
 ## Balance Table Function
