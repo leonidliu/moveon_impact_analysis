@@ -74,13 +74,23 @@ calculate_age <- function(from, to) {
 }
 ```
 
+## Create Imputation Function
+
+```{r imputation_function}
+impute_with_missing_flag <- function(data, var) {
+  data %>%
+    mutate("{{var}}_missing" := if_else(is.na({{ var }}), 1, 0),
+           {{ var }} := replace_na({{ var }}, mean({{ var }}, na.rm = TRUE)))
+}
+```
+
 ## Clean Data
 
 ```{r clean_data}
 full_clean_df <- df %>%
   inner_join(covariate_df) %>%
   inner_join(outcome_df) %>%
-  #mutate(returning_voter = is.na(vb_vf_g2016) & (!is.na(vb_vf_g2012) | !is.na(vb_vf_g2014))) %>%
+  mutate(returning_voter = is.na(vb_vf_g2016) & (!is.na(vb_vf_g2012) | !is.na(vb_vf_g2014))) %>%
   mutate(young_voter = !is.na(vb_voterbase_dob) & 
            year(vb_voterbase_dob) > 1980 & 
            year(vb_voterbase_dob) < 2005) %>%
@@ -95,7 +105,9 @@ full_clean_df <- df %>%
   mutate(any_phone_attempted = if_else(phone_attempted == 1 | gotv_phone_attempted == 1, 1, 0),
          any_phone_contacted = if_else(phone_contacted == 1 | gotv_phone_contacted == 1, 1, 0)) %>%
   mutate(treatment = if_else(treat == 0, "Control", "Treatment")) %>%
-  mutate(in_target_state = vb_vf_reg_state %in% c("AZ", "FL", "GA", "MI", "NC", "NV", "OH", "PA", "WI")) %>%
+  mutate(in_target_state = case_when(vb_vf_reg_state %in% c("AZ", "FL", "GA", "MI", "NC", "NV", "OH", "PA", "WI") ~ TRUE,
+                                     is.na(vb_vf_reg_state) ~ NA,
+                                     TRUE ~ FALSE)) %>%
   mutate(target_geography = case_when(vb_vf_source_state %in% c("AZ", "FL", "GA", "MI", "NC", "NV", "OH", "PA", "WI") ~ vb_vf_source_state,
                                       (vb_vf_source_state == "AZ" & vb_vf_cd %in% c("001", "006"))
                                       | (vb_vf_source_state == "CA" & vb_vf_cd %in% c("013", "022", "027", "045", "047"))
@@ -113,6 +125,7 @@ full_clean_df <- df %>%
                                       | (vb_vf_source_state == "OR" & vb_vf_cd %in% c("005", "006"))
                                       | (vb_vf_source_state == "VA" & vb_vf_cd %in% c("002"))
                                       | (vb_vf_source_state == "WI" & vb_vf_cd %in% c("003")) ~ paste(vb_vf_source_state, vb_vf_cd),
+                                      is.na(vb_vf_reg_state) ~ "Missing",
                                       TRUE ~ "Other")) %>%
   mutate(target_geography_state = factor(if_else(grepl("0", target_geography), "Targeted CD", target_geography))) %>%
   mutate(target_geography_state = fct_relevel(target_geography_state, "Targeted CD", "Other", after = Inf)) %>%
@@ -120,6 +133,7 @@ full_clean_df <- df %>%
          race = case_when(civis_race == "WHITE" ~ "White",
                           civis_race == "AFAM" ~ "Black",
                           civis_race == "HISPANIC" ~ "Latino",
+                          is.na(civis_race) ~ "White",
                           TRUE ~ "Other"),
          urbanicity = case_when(ts_tsmart_urbanicity %in% c("R1", "R2") ~ "Rural",
                                 ts_tsmart_urbanicity %in% c("S3", "S4") ~ "Suburban",
@@ -130,7 +144,12 @@ full_clean_df <- df %>%
                        breaks = c(0, 29, 44, 64, Inf), 
                        labels = c("18-29", "30-44", "45-64", "65+"))) %>%
   mutate(race = factor(race, levels = c("White", "Black", "Latino", "Other")),
-         urbanicity = factor(urbanicity, levels = c("Urban", "Suburban", "Rural")))
+         urbanicity = factor(urbanicity, levels = c("Urban", "Suburban", "Rural"))) %>%
+  impute_with_missing_flag(ts_tsmart_partisan_score) %>%
+  impute_with_missing_flag(ts_tsmart_presidential_general_turnout_score) %>%
+  impute_with_missing_flag(ts_tsmart_ideology_score) %>%
+  impute_with_missing_flag(ts_tsmart_college_graduate_score)
+  
 ```
 
 ## Make Sub-Sample Dataset
