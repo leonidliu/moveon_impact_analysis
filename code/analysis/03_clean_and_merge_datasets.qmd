@@ -77,9 +77,7 @@ calculate_age <- function(from, to) {
 ## Clean Data
 
 ```{r clean_data}
-clean_df <- subsample_df %>%
-  select(vb_voterbase_id) %>%
-  inner_join(df) %>%
+full_clean_df <- df %>%
   inner_join(covariate_df) %>%
   inner_join(outcome_df) %>%
   #mutate(returning_voter = is.na(vb_vf_g2016) & (!is.na(vb_vf_g2012) | !is.na(vb_vf_g2014))) %>%
@@ -135,11 +133,24 @@ clean_df <- subsample_df %>%
          urbanicity = factor(urbanicity, levels = c("Urban", "Suburban", "Rural")))
 ```
 
+## Make Sub-Sample Dataset
+
+```{r subsample}
+clean_df <- subsample_df %>%
+  select(vb_voterbase_id) %>%
+  inner_join(full_clean_df)
+```
+
 ## Save Cleaned Data
 
-```{r save_cleaned_dataset}
+```{r save_cleaned_datasets}
 s3write_using(x = clean_df, 
               FUN = saveRDS, 
-              object = "p080_moveon_impact_analysis/descriptive_study/clean_df.rds", 
+              object = "p080_moveon_impact_analysis/clean_df.rds", 
+              bucket = "tmc-research-projects")
+
+s3write_using(x = full_clean_df, 
+              FUN = saveRDS, 
+              object = "p080_moveon_impact_analysis/full_clean_df.rds", 
               bucket = "tmc-research-projects")
 ```

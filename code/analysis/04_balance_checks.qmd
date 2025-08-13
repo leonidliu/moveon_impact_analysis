@@ -4,10 +4,9 @@ author: "Andy Zack"
 date: "`r Sys.Date()`"
 format: html
 self-contained: true
-editor: source
-execute:
-  echo: true
 ---
+
+All balance checks in this script are on the 800K subsample. For this analysis, we are not checking balance on the full 4M audience because we are not running any analysis that includes the control group for that full sample.
 
 ## Load Packages
 
@@ -37,7 +36,7 @@ bucket = "tmc-research-projects"
 clean_df <- s3read_using(
   FUN = read_rds,
   bucket = bucket,
-  object = "p080_moveon_impact_analysis/descriptive_study/clean_df.rds")
+  object = "p080_moveon_impact_analysis/clean_df.rds")
 ```
 
 ## Balance Table Function
@@ -110,7 +109,7 @@ clean_df %>%
   kable()
 ```
 
-## Run Balance Regression 
+## Run Balance Regression
 
 ```{r balance_regressions}
 # first make dataset with no missing data for the anova that comes later
@@ -157,6 +156,32 @@ balance_lm %>%
 ```{r likelihood_ratio_test}
 null_lm <- lm(treat ~ 1, data = model_df)
 anova(null_lm, balance_lm) %>% 
+  tidy() %>%
+  kable()
+```
+
+## Placebo Regression
+
+```{r placebo_regression}
+
+placebo_glm <- glm(formula = voted_22 ~ 
+                     treat +
+                     target_geography_state +
+                     ts_tsmart_partisan_score +
+                     ts_tsmart_partisan_score^2 +
+                     ts_tsmart_presidential_general_turnout_score +
+                     ts_tsmart_presidential_general_turnout_score^2 +
+                     age + 
+                     urbanicity +
+                     gender +
+                     race +
+                     voted_20 +
+                     voted_p22 +
+                     voted_p20, 
+                   data = clean_df,
+                   family = "binomial")
+
+placebo_glm %>%
   tidy() %>%
   kable()
 ```
