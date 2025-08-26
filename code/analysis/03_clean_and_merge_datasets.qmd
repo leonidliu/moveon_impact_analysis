@@ -133,6 +133,9 @@ full_clean_df <- df %>%
          race = case_when(civis_race == "WHITE" ~ "White",
                           civis_race == "AFAM" ~ "Black",
                           civis_race == "HISPANIC" ~ "Latino",
+                          vb_voterbase_race == "W" ~ "White",
+                          vb_voterbase_race == "B" ~ "Black",
+                          vb_voterbase_race == "H" ~ "Latino",
                           is.na(civis_race) ~ "White",
                           TRUE ~ "Other"),
          urbanicity = case_when(ts_tsmart_urbanicity %in% c("R1", "R2") ~ "Rural",
@@ -158,6 +161,19 @@ full_clean_df <- df %>%
 clean_df <- subsample_df %>%
   select(vb_voterbase_id) %>%
   inner_join(full_clean_df)
+```
+
+## Basic Data Checks
+
+```{r basic_checks}
+dim(clean_df)
+dim(full_clean_df)
+glimpse(clean_df)
+clean_df %>%
+  summarise(across(everything(), ~sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
+  filter(na_count > 0) %>%
+  kable()
 ```
 
 ## Save Cleaned Data
