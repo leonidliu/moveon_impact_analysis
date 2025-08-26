@@ -1,0 +1,274 @@
+---
+title: "5 Descriptive Stats"
+author: "Andy Zack"
+date: "`r Sys.Date()`"
+format: html
+self-contained: true
+---
+
+## Load Packages
+
+```{r load_packages}
+#| message: false
+
+library(tidyverse)
+library(aws.s3)
+library(here)
+library(kableExtra)
+library(scales)
+```
+
+## Other Setup
+
+```{r other_setup}
+Sys.setenv("AWS_ACCESS_KEY_ID" = Sys.getenv("TMC_s3_access_key"),
+           "AWS_SECRET_ACCESS_KEY" = Sys.getenv("TMC_s3_secret_key"))
+
+bucket = "tmc-research-projects"
+```
+
+## Load Data
+
+```{r load_data}
+clean_df <- s3read_using(
+  FUN = read_rds,
+  bucket = bucket,
+  object = "p080_moveon_impact_analysis/clean_df.rds")
+
+full_clean_df <- s3read_using(
+  FUN = read_rds,
+  bucket = bucket,
+  object = "p080_moveon_impact_analysis/full_clean_df.rds")
+
+```
+
+## Overall Universe Descriptives
+
+#### Demographics
+
+First make the function to print tables:
+
+```{r freq_table_function}
+make_freq_table <- function(data, column) {
+  data %>%
+    count({{ column }}) %>%
+    mutate(`%` = percent(n / nrow(data), accuracy = 0.1)) %>%
+    select(-n)
+}
+```
+
+```{r overall_demographics}
+full_clean_df %>%
+  rename(State = target_geography_state) %>%
+  make_freq_table(column = State) %>%
+  mutate(x=case_when(State == "Targeted CD" ~ -1,
+                     State == "Other" ~ -2,
+                     State == "Missing" ~ -3,
+                     TRUE ~ extract_numeric(`%`))) %>%
+  arrange(-x) %>%
+  select(-x) %>%
+  kable()
+  
+full_clean_df %>%
+  make_freq_table(column = gender) %>%
+  transmute(Gender = gender, `%`) %>%
+  arrange(rev(Gender)) %>%
+  kable()
+
+full_clean_df %>%
+  make_freq_table(column = race) %>%
+  transmute(Race = race, `%`) %>%
+  kable()
+
+full_clean_df %>%
+  make_freq_table(column = urbanicity) %>%
+  transmute(Urbanicity = urbanicity, `%`) %>%
+  kable()
+
+tibble(Age = "Mean Age", 
+       `%` = as.character(round(mean(full_clean_df$age, na.rm = T), digits = 1))) %>%
+  bind_rows(full_clean_df %>%
+              make_freq_table(column = age_bin) %>%
+              transmute(Age = age_bin, `%`) %>%
+              filter(!is.na(Age))) %>%
+  kable()
+
+full_clean_df %>%
+  summarise(`Avg. Partisanship` = mean(ts_tsmart_partisan_score, na.rm = T),
+            `Avg. Pres. Turnout` = mean(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            `Avg. College Graduate` = mean(ts_tsmart_college_graduate_score, na.rm = T)) %>%
+  pivot_longer(cols = everything(), names_to = "Score", values_to = "%") %>%
+  mutate(`%` = round(`%`, digits = 1)) %>%
+  kable()
+
+full_clean_df %>%
+  summarise(`2020 General` = 100 * mean(voted_20),
+            `2022 General` = 100 * mean(voted_22)) %>%
+  pivot_longer(cols = everything(), names_to = "Vote History", values_to = "%") %>%
+  mutate(`%` = round(`%`, digits = 1)) %>%
+  kable()
+```
+
+#### Treatment Group Sizes
+
+```{r treatment_group_sizes}
+full_clean_df %>%
+  mutate(treat_outreach = case_when(treat == 0 ~ "Control",
+                                    postcard_attempted + phone_attempted == 2 ~ "Phone + Postcard",
+                                    phone_attempted == 1 ~ "Phone Only",
+                                    postcard_attempted == 1 ~ "Postcard Only",
+                                    TRUE ~ "Not Attempted")) %>%
+  mutate(treat_outreach = factor(treat_outreach, levels = c("Control",
+                                                            "Not Attempted",
+                                                            "Phone Only",
+                                                            "Postcard Only",
+                                                            "Phone + Postcard"))) %>%
+  count(treat_outreach) %>%
+  mutate(Group = if_else(treat_outreach == "Control", "Control", "Treatment"), .before = 1) %>%
+  mutate(`%` = percent(n / nrow(full_clean_df), accuracy = .1)) %>%
+  bind_rows(tibble(Group = "Total",
+                   treat_outreach = "",
+                   n = nrow(full_clean_df),
+                   `%` = "100%")) %>%
+  kable(format.args = list(big.mark = ","))
+```
+
+#### Phone and Contact Rates by Mode
+
+```{r}
+full_clean_df %>%
+  summarise(non_gotv_attempts = sum(phone_attempted, na.rm = TRUE),
+            non_gotv_contacts = sum(phone_contacted, na.rm = TRUE),
+            gotv_attempts = sum(gotv_phone_attempted, na.rm = TRUE),
+            gotv_contacts = sum(gotv_phone_contacted, na.rm = TRUE)) %>%
+  mutate(overall_attempts = non_gotv_attempts + gotv_attempts,
+         overall_contacts = non_gotv_contacts + gotv_contacts) %>%
+  pivot_longer(cols = everything(),
+               names_to = c("Mode", ".value"),
+               names_pattern = "(non_gotv|gotv|overall)_(.*)") %>%
+  mutate(Mode = case_when(Mode == "non_gotv" ~ "Non-GOTV Phone",
+                          Mode == "gotv" ~ "GOTV Phone",
+                          Mode == "overall" ~ "Overall")) %>%
+  mutate(contact_rate = contacts / attempts) %>%
+  transmute(Mode, 
+            Attempts = attempts, 
+            Contacts = contacts, 
+            `Contact Rate` = percent(contact_rate, accuracy = .1)) %>%
+  kable(format.args = list(big.mark = ","))
+```
+
+#### Number of Postcards Sent
+
+```{r}
+sum(full_clean_df$postcard_attempted)
+```
+
+## 800K Subset
+
+#### Demographics
+
+```{r}
+clean_df %>%
+  rename(State = target_geography_state) %>%
+  make_freq_table(column = State) %>%
+  mutate(x=case_when(State == "Targeted CD" ~ -1,
+                     State == "Other" ~ -2,
+                     State == "Missing" ~ -3,
+                     TRUE ~ extract_numeric(`%`))) %>%
+  arrange(-x) %>%
+  select(-x) %>%
+  kable()
+
+clean_df %>%
+  make_freq_table(column = gender) %>%
+  transmute(Gender = gender, `%`) %>%
+  arrange(rev(Gender)) %>%
+  kable()
+
+clean_df %>%
+  make_freq_table(column = race) %>%
+  transmute(Race = race, `%`) %>%
+  kable()
+
+clean_df %>%
+  make_freq_table(column = urbanicity) %>%
+  transmute(Urbanicity = urbanicity, `%`) %>%
+  kable()
+
+tibble(Age = "Mean Age", 
+       `%` = as.character(round(mean(clean_df$age, na.rm = T), digits = 1))) %>%
+  bind_rows(clean_df %>%
+              make_freq_table(column = age_bin) %>%
+              transmute(Age = age_bin, `%`) %>%
+              filter(!is.na(Age))) %>%
+  kable()
+
+clean_df %>%
+  summarise(`Avg. Partisanship` = mean(ts_tsmart_partisan_score, na.rm = T),
+            `Avg. Pres. Turnout` = mean(ts_tsmart_presidential_general_turnout_score, na.rm = T),
+            `Avg. College Graduate` = mean(ts_tsmart_college_graduate_score, na.rm = T)) %>%
+  pivot_longer(cols = everything(), names_to = "Score", values_to = "%") %>%
+  mutate(`%` = round(`%`, digits = 1)) %>%
+  kable()
+
+clean_df %>%
+  summarise(`2020 General` = 100 * mean(voted_20),
+            `2022 General` = 100 * mean(voted_22)) %>%
+  pivot_longer(cols = everything(), names_to = "Vote History", values_to = "%") %>%
+  mutate(`%` = round(`%`, digits = 1)) %>%
+  kable()
+```
+
+#### Treatment Group Sizes
+
+```{r}
+clean_df %>%
+  mutate(treat_outreach = case_when(treat == 0 ~ "Control",
+                                    postcard_attempted + phone_attempted == 2 ~ "Phone + Postcard",
+                                    phone_attempted == 1 ~ "Phone Only",
+                                    postcard_attempted == 1 ~ "Postcard Only",
+                                    TRUE ~ "Not Attempted")) %>%
+  mutate(treat_outreach = factor(treat_outreach, levels = c("Control",
+                                                            "Not Attempted",
+                                                            "Phone Only",
+                                                            "Postcard Only",
+                                                            "Phone + Postcard"))) %>%
+  count(treat_outreach) %>%
+  mutate(Group = if_else(treat_outreach == "Control", "Control", "Treatment"), .before = 1) %>%
+  mutate(`%` = percent(n / nrow(clean_df), accuracy = .1)) %>%
+  bind_rows(tibble(Group = "Total",
+                   treat_outreach = "",
+                   n = nrow(clean_df),
+                   `%` = "100%")) %>%
+  kable(format.args = list(big.mark = ","))
+```
+
+#### Phone and Contact Rates by Mode
+
+```{r}
+clean_df %>%
+  summarise(non_gotv_attempts = sum(phone_attempted, na.rm = TRUE),
+            non_gotv_contacts = sum(phone_contacted, na.rm = TRUE),
+            gotv_attempts = sum(gotv_phone_attempted, na.rm = TRUE),
+            gotv_contacts = sum(gotv_phone_contacted, na.rm = TRUE)) %>%
+  mutate(overall_attempts = non_gotv_attempts + gotv_attempts,
+         overall_contacts = non_gotv_contacts + gotv_contacts) %>%
+  pivot_longer(cols = everything(),
+               names_to = c("Mode", ".value"),
+               names_pattern = "(non_gotv|gotv|overall)_(.*)") %>%
+  mutate(Mode = case_when(Mode == "non_gotv" ~ "Non-GOTV Phone",
+                          Mode == "gotv" ~ "GOTV Phone",
+                          Mode == "overall" ~ "Overall")) %>%
+  mutate(contact_rate = contacts / attempts) %>%
+  transmute(Mode, 
+            Attempts = attempts, 
+            Contacts = contacts, 
+            `Contact Rate` = percent(contact_rate, accuracy = .1)) %>%
+  kable(format.args = list(big.mark = ","))
+```
+
+#### Number of Postcards Sent
+
+```{r}
+sum(clean_df$postcard_attempted)
+```
