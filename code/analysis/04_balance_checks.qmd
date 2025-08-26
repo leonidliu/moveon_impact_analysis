@@ -172,8 +172,8 @@ anova(null_lm, balance_lm) %>%
 ## Placebo Regression
 
 ```{r placebo_regression}
-
-placebo_glm <- glm(formula = voted_22 ~ 
+# for 2022 election
+placebo_glm_22 <- glm(formula = voted_22 ~ 
                      treat +
                      target_geography_state +
                      ts_tsmart_partisan_score +
@@ -190,7 +190,27 @@ placebo_glm <- glm(formula = voted_22 ~
                    data = clean_df,
                    family = "binomial")
 
-placebo_glm %>%
+placebo_glm_22 %>%
+  tidy() %>%
+  kable()
+
+# for 2020 election
+placebo_glm_20 <- glm(formula = voted_20 ~ 
+                     treat +
+                     target_geography_state +
+                     ts_tsmart_partisan_score +
+                     ts_tsmart_partisan_score^2 +
+                     ts_tsmart_presidential_general_turnout_score +
+                     ts_tsmart_presidential_general_turnout_score^2 +
+                     age + 
+                     urbanicity +
+                     gender +
+                     race +
+                     voted_p20, 
+                   data = clean_df,
+                   family = "binomial")
+
+placebo_glm_20 %>%
   tidy() %>%
   kable()
 ```
