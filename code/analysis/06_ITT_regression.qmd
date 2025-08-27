@@ -51,9 +51,8 @@ This section drops the \~3,000 people that could not be matched to the voterfile
 
 This section also cleans up some of the factors that have no people in them. That is what `droplevels()` does. I think this should make the `marginaleffects::avg_predictions()` run smoothly without error.
 
-```{r drop_unmatched}
+```{r make_model_df}
 model_df <- clean_df %>%
-  filter(!is.na(vb_tsmart_exact_track)) %>%
   select(treat,
          voted_24,
          gender,
@@ -75,22 +74,18 @@ model_df <- clean_df %>%
 
 nrow(clean_df) 
 nrow(model_df)
-nrow(clean_df)  - nrow(model_df)
 ```
 
 ## Impute Missing
 
-Age is the only column with some missing data. I impute the mean here. This could be done in the data-cleaning step, but it might only be needed in this script.
+No columns have missing data. Everything that had been missing was imputed in the clean data step.
 
-```{r impute_missing}
+```{r check_missing}
 model_df %>%
   summarise(across(everything(), ~sum(is.na(.)))) %>%
   pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
   filter(na_count > 0) %>%
   kable()
-
-# impute age with mean age for the ~ 350 cases where it is missing
-model_df$age[is.na(model_df$age)] <- mean(model_df$age, na.rm = T)
 ```
 
 ## Run Model
@@ -140,8 +135,8 @@ kable(itt_regression_results)
 
 ```{r save_results}
 s3write_using(x = itt_regression_results, 
-              FUN = saveRDS, 
-              object = "p080_moveon_impact_analysis/regression_results.rds", 
+              FUN = write_csv, 
+              object = "p080_moveon_impact_analysis/regression_results.csv", 
               bucket = "tmc-research-projects")
 ```
 
