@@ -96,7 +96,8 @@ full_clean_df <- df %>%
            year(vb_voterbase_dob) < 2005) %>%
   mutate(voted_in_one_of_three = !is.na(vb_vf_g2018) | !is.na(vb_vf_g2020) | !is.na(vb_vf_g2022)) %>%
   mutate(yob = year(vb_voterbase_dob)) %>%
-  mutate(voted_22 = !is.na(vb_vf_g2022),
+  mutate(voted_24 = !is.na(vb_vf_g2024),
+         voted_22 = !is.na(vb_vf_g2022),
          voted_20 = !is.na(vb_vf_g2020),
          voted_18 = !is.na(vb_vf_g2018),
          voted_p22 = !is.na(vb_vf_p2022),
@@ -151,7 +152,10 @@ full_clean_df <- df %>%
   impute_with_missing_flag(ts_tsmart_partisan_score) %>%
   impute_with_missing_flag(ts_tsmart_presidential_general_turnout_score) %>%
   impute_with_missing_flag(ts_tsmart_ideology_score) %>%
-  impute_with_missing_flag(ts_tsmart_college_graduate_score)
+  impute_with_missing_flag(ts_tsmart_college_graduate_score) %>%
+  impute_with_missing_flag(age) %>%
+  mutate(ts_tsmart_presidential_general_turnout_score_sq = ts_tsmart_presidential_general_turnout_score^2,
+         ts_tsmart_partisan_score_sq = ts_tsmart_partisan_score^2)
   
 ```
 

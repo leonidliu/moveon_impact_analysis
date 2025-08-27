@@ -9,7 +9,7 @@
 <meta name="author" content="Andy Zack">
 <meta name="dcterms.date" content="2025-08-27">
 
-<title>3 Clean and Merge Datasets</title>
+<title>6 ITT Regression</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -3089,7 +3089,7 @@ vertical-align: -.125em;
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">3 Clean and Merge Datasets</h1>
+<h1 class="title">6 ITT Regression</h1>
 </div>
 
 
@@ -3118,25 +3118,18 @@ vertical-align: -.125em;
 </header>
 
 
-<section id="summary" class="level2">
-<h2 class="anchored" data-anchor-id="summary">Summary</h2>
-<p>This script combines 4 raw datasets into one final dataset that can be used for most of the analysis.</p>
-<ul>
-<li><p><code>df</code> is the original ~4M row dataset that MoveOn sent. It contains data on who was attempted and contacted with each mode</p></li>
-<li><p><code>covariate_df</code> has demographics, scores, and vote history for everyone in <code>df</code> that matched to the pre-program voter file</p></li>
-<li><p><code>outcome_df</code> shows 2024 vote history for everyone in <code>df</code>. This was the main outcome of the experiment</p></li>
-<li><p><code>subsample_df</code> is a list of ~20% of <code>df</code> that focuses on most of the people that were actually attempted. This is who we will run the ITT analysis on.</p></li>
-</ul>
-</section>
+<p>This code runs the ITT regression on the 800K subset of the data. We are using this smaller dataset because even though there are fewer people in it, the contact rate was so much higher that it should produce more statistical power. The experiment is still severely underpowered. The final part of this script outputs the numbers that can be plugged into the <a href="https://analystinstitute.org/power-calculator/">AI Power Calculator</a> to see this.</p>
+<p>Given that this is an ITT analysis, it does not produce separate analyses for postcard vs. regular phone vs GOTV phone. There are also no subgroup analyses due to the fact that it is so underpowered and that the topline result is null.</p>
 <section id="load-packages" class="level2">
 <h2 class="anchored" data-anchor-id="load-packages">Load Packages</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(aws.s3)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(kableExtra)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(forcats)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(kableExtra)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(marginaleffects)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(broom)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="other-setup" class="level2">
@@ -3151,253 +3144,58 @@ vertical-align: -.125em;
 <section id="load-data" class="level2">
 <h2 class="anchored" data-anchor-id="load-data">Load Data</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">s3read_using</span>(<span class="at">FUN =</span> read_csv,</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">bucket =</span> bucket,</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                   <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/exp2024_ucg_attempts_and_contacts_final.csv&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Rows: 4608154 Columns: 10
-── Column specification ────────────────────────────────────────────────────────
-Delimiter: &quot;,&quot;
-chr (1): vb_voterbase_id
-dbl (9): treat, postcard_attempted, postcard_contacted, phone_attempted, pho...
-
-ℹ Use `spec()` to retrieve the full column specification for this data.
-ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>covariate_df <span class="ot">&lt;-</span> <span class="fu">s3read_using</span>(<span class="at">FUN =</span> readRDS,</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                             <span class="at">bucket =</span> bucket,</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                             <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/voter_file_covariates.rds&quot;</span>)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>outcome_df <span class="ot">&lt;-</span> <span class="fu">s3read_using</span>(<span class="at">FUN =</span> readRDS,</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                           <span class="at">bucket =</span> bucket,</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>                           <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/outcome.rds&quot;</span>)</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>subsample_df <span class="ot">&lt;-</span> <span class="fu">s3read_using</span>(<span class="at">FUN =</span> read_csv,</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>                           <span class="at">bucket =</span> bucket,</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>                           <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/april_subgroup_for_contact_attempts.csv&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Rows: 826393 Columns: 2
-── Column specification ────────────────────────────────────────────────────────
-Delimiter: &quot;,&quot;
-chr (1): vb_voterbase_id
-dbl (1): treat
-
-ℹ Use `spec()` to retrieve the full column specification for this data.
-ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-</div>
-</div>
-</section>
-<section id="create-age-function" class="level2">
-<h2 class="anchored" data-anchor-id="create-age-function">Create Age Function</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>calculate_age <span class="ot">&lt;-</span> <span class="cf">function</span>(from, to) {</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  from_lt <span class="ot">=</span> <span class="fu">as.POSIXlt</span>(from)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  to_lt <span class="ot">=</span> <span class="fu">as.POSIXlt</span>(to)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  age <span class="ot">=</span> to_lt<span class="sc">$</span>year <span class="sc">-</span> from_lt<span class="sc">$</span>year</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(to_lt<span class="sc">$</span>mon <span class="sc">&lt;</span> from_lt<span class="sc">$</span>mon <span class="sc">|</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>           (to_lt<span class="sc">$</span>mon <span class="sc">==</span> from_lt<span class="sc">$</span>mon <span class="sc">&amp;</span> to_lt<span class="sc">$</span>mday <span class="sc">&lt;</span> from_lt<span class="sc">$</span>mday),</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>         age <span class="sc">-</span> <span class="dv">1</span>, age)</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-</section>
-<section id="create-imputation-function" class="level2">
-<h2 class="anchored" data-anchor-id="create-imputation-function">Create Imputation Function</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>impute_with_missing_flag <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var) {</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  data <span class="sc">%&gt;%</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="st">&quot;{{var}}_missing&quot;</span> <span class="sc">:</span><span class="er">=</span> <span class="fu">if_else</span>(<span class="fu">is.na</span>({{ var }}), <span class="dv">1</span>, <span class="dv">0</span>),</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>           {{ var }} <span class="sc">:</span><span class="er">=</span> <span class="fu">replace_na</span>({{ var }}, <span class="fu">mean</span>({{ var }}, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)))</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>clean_df <span class="ot">&lt;-</span> <span class="fu">s3read_using</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">FUN =</span> read_rds,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">bucket =</span> bucket,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/clean_df.rds&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="clean-data" class="level2">
 <h2 class="anchored" data-anchor-id="clean-data">Clean Data</h2>
+<p>This section drops the ~3,000 people that could not be matched to the voterfile. We could instead just count them as not voted. It is so few people that it probably does not matter either way.</p>
+<p>This section also cleans up some of the factors that have no people in them. That is what <code>droplevels()</code> does. I think this should make the <code>marginaleffects::avg_predictions()</code> run smoothly without error.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>full_clean_df <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(covariate_df) <span class="sc">%&gt;%</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(outcome_df) <span class="sc">%&gt;%</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">returning_voter =</span> <span class="fu">is.na</span>(vb_vf_g2016) <span class="sc">&amp;</span> (<span class="sc">!</span><span class="fu">is.na</span>(vb_vf_g2012) <span class="sc">|</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_g2014))) <span class="sc">%&gt;%</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">young_voter =</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_voterbase_dob) <span class="sc">&amp;</span> </span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>           <span class="fu">year</span>(vb_voterbase_dob) <span class="sc">&gt;</span> <span class="dv">1980</span> <span class="sc">&amp;</span> </span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>           <span class="fu">year</span>(vb_voterbase_dob) <span class="sc">&lt;</span> <span class="dv">2005</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">voted_in_one_of_three =</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_g2018) <span class="sc">|</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_g2020) <span class="sc">|</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_g2022)) <span class="sc">%&gt;%</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">yob =</span> <span class="fu">year</span>(vb_voterbase_dob)) <span class="sc">%&gt;%</span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">voted_24 =</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_g2024),</span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">voted_22 =</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_g2022),</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">voted_20 =</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_g2020),</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>         <span class="at">voted_18 =</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_g2018),</span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>         <span class="at">voted_p22 =</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_p2022),</span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">voted_p20 =</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_p2020),</span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>         <span class="at">voted_p18 =</span> <span class="sc">!</span><span class="fu">is.na</span>(vb_vf_p2018)) <span class="sc">%&gt;%</span></span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">any_phone_attempted =</span> <span class="fu">if_else</span>(phone_attempted <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> gotv_phone_attempted <span class="sc">==</span> <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>),</span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>         <span class="at">any_phone_contacted =</span> <span class="fu">if_else</span>(phone_contacted <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> gotv_phone_contacted <span class="sc">==</span> <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">treatment =</span> <span class="fu">if_else</span>(treat <span class="sc">==</span> <span class="dv">0</span>, <span class="st">&quot;Control&quot;</span>, <span class="st">&quot;Treatment&quot;</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">in_target_state =</span> <span class="fu">case_when</span>(vb_vf_reg_state <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;AZ&quot;</span>, <span class="st">&quot;FL&quot;</span>, <span class="st">&quot;GA&quot;</span>, <span class="st">&quot;MI&quot;</span>, <span class="st">&quot;NC&quot;</span>, <span class="st">&quot;NV&quot;</span>, <span class="st">&quot;OH&quot;</span>, <span class="st">&quot;PA&quot;</span>, <span class="st">&quot;WI&quot;</span>) <span class="sc">~</span> <span class="cn">TRUE</span>,</span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>                                     <span class="fu">is.na</span>(vb_vf_reg_state) <span class="sc">~</span> <span class="cn">NA</span>,</span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>                                     <span class="cn">TRUE</span> <span class="sc">~</span> <span class="cn">FALSE</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">target_geography =</span> <span class="fu">case_when</span>(vb_vf_source_state <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;AZ&quot;</span>, <span class="st">&quot;FL&quot;</span>, <span class="st">&quot;GA&quot;</span>, <span class="st">&quot;MI&quot;</span>, <span class="st">&quot;NC&quot;</span>, <span class="st">&quot;NV&quot;</span>, <span class="st">&quot;OH&quot;</span>, <span class="st">&quot;PA&quot;</span>, <span class="st">&quot;WI&quot;</span>) <span class="sc">~</span> vb_vf_source_state,</span>
-<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>                                      (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;AZ&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;001&quot;</span>, <span class="st">&quot;006&quot;</span>))</span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;CA&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;013&quot;</span>, <span class="st">&quot;022&quot;</span>, <span class="st">&quot;027&quot;</span>, <span class="st">&quot;045&quot;</span>, <span class="st">&quot;047&quot;</span>))</span>
-<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;CO&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;003&quot;</span>, <span class="st">&quot;008&quot;</span>))</span>
-<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;CT&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;005&quot;</span>))</span>
-<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;IA&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;003&quot;</span>))</span>
-<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;IL&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;017&quot;</span>))</span>
-<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;MI&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;010&quot;</span>))</span>
-<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;MT&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;001&quot;</span>))</span>
-<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;NC&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;013&quot;</span>))</span>
-<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;NE&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;002&quot;</span>))</span>
-<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;NJ&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;007&quot;</span>))</span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;NM&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;002&quot;</span>))</span>
-<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;NY&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;003&quot;</span>, <span class="st">&quot;004&quot;</span>, <span class="st">&quot;017&quot;</span>, <span class="st">&quot;019&quot;</span>, <span class="st">&quot;022&quot;</span>))</span>
-<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;OR&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;005&quot;</span>, <span class="st">&quot;006&quot;</span>))</span>
-<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;VA&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;002&quot;</span>))</span>
-<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>                                      <span class="sc">|</span> (vb_vf_source_state <span class="sc">==</span> <span class="st">&quot;WI&quot;</span> <span class="sc">&amp;</span> vb_vf_cd <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;003&quot;</span>)) <span class="sc">~</span> <span class="fu">paste</span>(vb_vf_source_state, vb_vf_cd),</span>
-<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>                                      <span class="fu">is.na</span>(vb_vf_reg_state) <span class="sc">~</span> <span class="st">&quot;Missing&quot;</span>,</span>
-<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>                                      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">&quot;Other&quot;</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">target_geography_state =</span> <span class="fu">factor</span>(<span class="fu">if_else</span>(<span class="fu">grepl</span>(<span class="st">&quot;0&quot;</span>, target_geography), <span class="st">&quot;Targeted CD&quot;</span>, target_geography))) <span class="sc">%&gt;%</span></span>
-<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">target_geography_state =</span> <span class="fu">fct_relevel</span>(target_geography_state, <span class="st">&quot;Targeted CD&quot;</span>, <span class="st">&quot;Other&quot;</span>, <span class="at">after =</span> <span class="cn">Inf</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">gender =</span> <span class="fu">case_when</span>(vb_voterbase_gender <span class="sc">==</span> <span class="st">&quot;Male&quot;</span> <span class="sc">~</span> <span class="st">&quot;Men&quot;</span>, <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">&quot;Women&quot;</span>),</span>
-<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>         <span class="at">race =</span> <span class="fu">case_when</span>(civis_race <span class="sc">==</span> <span class="st">&quot;WHITE&quot;</span> <span class="sc">~</span> <span class="st">&quot;White&quot;</span>,</span>
-<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>                          civis_race <span class="sc">==</span> <span class="st">&quot;AFAM&quot;</span> <span class="sc">~</span> <span class="st">&quot;Black&quot;</span>,</span>
-<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>                          civis_race <span class="sc">==</span> <span class="st">&quot;HISPANIC&quot;</span> <span class="sc">~</span> <span class="st">&quot;Latino&quot;</span>,</span>
-<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>                          vb_voterbase_race <span class="sc">==</span> <span class="st">&quot;W&quot;</span> <span class="sc">~</span> <span class="st">&quot;White&quot;</span>,</span>
-<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>                          vb_voterbase_race <span class="sc">==</span> <span class="st">&quot;B&quot;</span> <span class="sc">~</span> <span class="st">&quot;Black&quot;</span>,</span>
-<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>                          vb_voterbase_race <span class="sc">==</span> <span class="st">&quot;H&quot;</span> <span class="sc">~</span> <span class="st">&quot;Latino&quot;</span>,</span>
-<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>                          <span class="fu">is.na</span>(civis_race) <span class="sc">~</span> <span class="st">&quot;White&quot;</span>,</span>
-<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>                          <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">&quot;Other&quot;</span>),</span>
-<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>         <span class="at">urbanicity =</span> <span class="fu">case_when</span>(ts_tsmart_urbanicity <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;R1&quot;</span>, <span class="st">&quot;R2&quot;</span>) <span class="sc">~</span> <span class="st">&quot;Rural&quot;</span>,</span>
-<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>                                ts_tsmart_urbanicity <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;S3&quot;</span>, <span class="st">&quot;S4&quot;</span>) <span class="sc">~</span> <span class="st">&quot;Suburban&quot;</span>,</span>
-<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a>                                ts_tsmart_urbanicity <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;U5&quot;</span>, <span class="st">&quot;U6&quot;</span>) <span class="sc">~</span> <span class="st">&quot;Urban&quot;</span>,</span>
-<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a>                                <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">&quot;Urban&quot;</span>),</span>
-<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>         <span class="at">age =</span> <span class="fu">pmax</span>(<span class="fu">calculate_age</span>(<span class="at">from =</span> vb_voterbase_dob, <span class="at">to =</span> <span class="st">&quot;2024-11-05&quot;</span>),<span class="dv">0</span>),</span>
-<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>         <span class="at">age_bin =</span> <span class="fu">cut</span>(age, </span>
-<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a>                       <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">29</span>, <span class="dv">44</span>, <span class="dv">64</span>, <span class="cn">Inf</span>), </span>
-<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a>                       <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;18-29&quot;</span>, <span class="st">&quot;30-44&quot;</span>, <span class="st">&quot;45-64&quot;</span>, <span class="st">&quot;65+&quot;</span>))) <span class="sc">%&gt;%</span></span>
-<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">race =</span> <span class="fu">factor</span>(race, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;White&quot;</span>, <span class="st">&quot;Black&quot;</span>, <span class="st">&quot;Latino&quot;</span>, <span class="st">&quot;Other&quot;</span>)),</span>
-<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a>         <span class="at">urbanicity =</span> <span class="fu">factor</span>(urbanicity, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;Urban&quot;</span>, <span class="st">&quot;Suburban&quot;</span>, <span class="st">&quot;Rural&quot;</span>))) <span class="sc">%&gt;%</span></span>
-<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>  <span class="fu">impute_with_missing_flag</span>(ts_tsmart_partisan_score) <span class="sc">%&gt;%</span></span>
-<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">impute_with_missing_flag</span>(ts_tsmart_presidential_general_turnout_score) <span class="sc">%&gt;%</span></span>
-<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">impute_with_missing_flag</span>(ts_tsmart_ideology_score) <span class="sc">%&gt;%</span></span>
-<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a>  <span class="fu">impute_with_missing_flag</span>(ts_tsmart_college_graduate_score) <span class="sc">%&gt;%</span></span>
-<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>  <span class="fu">impute_with_missing_flag</span>(age) <span class="sc">%&gt;%</span></span>
-<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ts_tsmart_presidential_general_turnout_score_sq =</span> ts_tsmart_presidential_general_turnout_score<span class="sc">^</span><span class="dv">2</span>,</span>
-<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a>         <span class="at">ts_tsmart_partisan_score_sq =</span> ts_tsmart_partisan_score<span class="sc">^</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Joining with `by = join_by(vb_voterbase_id)`
-Joining with `by = join_by(vb_voterbase_id)`</code></pre>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>model_df <span class="ot">&lt;-</span> clean_df <span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(treat,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>         voted_24,</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>         gender,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>         age,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>         target_geography_state,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>         voted_22,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>         voted_20,</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>         voted_p22,</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>         voted_p20,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>         race,</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>         ts_tsmart_presidential_general_turnout_score,</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>         ts_tsmart_presidential_general_turnout_score_sq,</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>         ts_tsmart_partisan_score,</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>         ts_tsmart_partisan_score_sq,</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>         urbanicity,</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>         ts_tsmart_college_graduate_score) <span class="sc">%&gt;%</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">droplevels</span>()</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(clean_df) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 826393</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(model_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 826393</code></pre>
 </div>
 </div>
 </section>
-<section id="make-sub-sample-dataset" class="level2">
-<h2 class="anchored" data-anchor-id="make-sub-sample-dataset">Make Sub-Sample Dataset</h2>
+<section id="impute-missing" class="level2">
+<h2 class="anchored" data-anchor-id="impute-missing">Impute Missing</h2>
+<p>No columns have missing data. Everything that had been missing was imputed in the clean data step.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>clean_df <span class="ot">&lt;-</span> subsample_df <span class="sc">%&gt;%</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(vb_voterbase_id) <span class="sc">%&gt;%</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(full_clean_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Joining with `by = join_by(vb_voterbase_id)`</code></pre>
-</div>
-</div>
-</section>
-<section id="basic-data-checks" class="level2">
-<h2 class="anchored" data-anchor-id="basic-data-checks">Basic Data Checks</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(clean_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 826393     76</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(full_clean_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 4608154      76</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(clean_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Rows: 826,393
-Columns: 76
-$ vb_voterbase_id                                      &lt;chr&gt; &quot;AZ-5692425&quot;, &quot;AZ…
-$ treat                                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ postcard_attempted                                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ postcard_contacted                                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ phone_attempted                                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ phone_contacted                                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ gotv_phone_attempted                                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ gotv_phone_contacted                                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ exp_attempted                                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ exp_contacted                                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ bq_ts_path                                           &lt;chr&gt; &quot;tmc-data-marts.t…
-$ vb_tsmart_exact_track                                &lt;chr&gt; &quot;N2945YQCKXMHPKI5…
-$ vb_tsmart_exact_address_track                        &lt;chr&gt; &quot;Y000000055434610…
-$ tmc_hh_id                                            &lt;blob&gt; &lt;43, e3, 40, 30,…
-$ file_date                                            &lt;chr&gt; &quot;20240514&quot;, &quot;2024…
-$ vb_vf_source_state                                   &lt;chr&gt; &quot;AZ&quot;, &quot;AZ&quot;, &quot;AZ&quot;,…
-$ vb_tsmart_state                                      &lt;chr&gt; &quot;AZ&quot;, &quot;AZ&quot;, &quot;AZ&quot;,…
-$ vb_vf_reg_state                                      &lt;chr&gt; &quot;AZ&quot;, &quot;AZ&quot;, &quot;AZ&quot;,…
-$ vb_vf_cd                                             &lt;chr&gt; &quot;004&quot;, &quot;008&quot;, &quot;00…
-$ vb_voterbase_registration_status                     &lt;chr&gt; &quot;Registered&quot;, &quot;Re…
-$ vb_vf_voter_status                                   &lt;chr&gt; &quot;Active&quot;, &quot;Active…
-$ vb_voterbase_dob                                     &lt;date&gt; 1993-01-01, 1994…
-$ vb_voterbase_gender                                  &lt;chr&gt; &quot;Female&quot;, &quot;Female…
-$ vb_voterbase_race                                    &lt;chr&gt; &quot;W&quot;, &quot;W&quot;, &quot;H&quot;, &quot;A…
-$ civis_race                                           &lt;chr&gt; &quot;WHITE&quot;, &quot;WHITE&quot;,…
-$ vb_vf_party                                          &lt;chr&gt; &quot;No Party&quot;, &quot;No P…
-$ vb_vf_county_name                                    &lt;chr&gt; &quot;MARICOPA&quot;, &quot;MARI…
-$ vb_tsmart_cd                                         &lt;chr&gt; &quot;004&quot;, &quot;008&quot;, &quot;00…
-$ ts_tsmart_partisan_score                             &lt;dbl&gt; 95.5, 85.5, 81.9,…
-$ ts_tsmart_presidential_general_turnout_score         &lt;dbl&gt; 56.4, 47.9, 36.1,…
-$ ts_tsmart_ideology_score                             &lt;dbl&gt; 67.8, 57.6, 85.5,…
-$ ts_tsmart_college_graduate_score                     &lt;dbl&gt; 33.7, 39.9, 37.9,…
-$ ts_tsmart_urbanicity                                 &lt;chr&gt; &quot;U5&quot;, &quot;U5&quot;, &quot;U5&quot;,…
-$ vb_tsmart_address_deliverability_indicator           &lt;int&gt; 1, 1, 6, 1, 1, 1,…
-$ vb_voterbase_mailable_flag                           &lt;chr&gt; &quot;Yes&quot;, &quot;Yes&quot;, &quot;No…
-$ vb_voterbase_deceased_flag                           &lt;chr&gt; NA, NA, NA, NA, N…
-$ vb_vf_g2022                                          &lt;chr&gt; NA, NA, NA, NA, N…
-$ vb_vf_g2020                                          &lt;chr&gt; &quot;E&quot;, &quot;P&quot;, NA, &quot;E&quot;…
-$ vb_vf_g2018                                          &lt;chr&gt; NA, NA, &quot;E&quot;, NA, …
-$ vb_vf_g2016                                          &lt;chr&gt; NA, NA, NA, NA, N…
-$ vb_vf_g2014                                          &lt;chr&gt; NA, NA, NA, NA, N…
-$ vb_vf_g2012                                          &lt;chr&gt; NA, NA, NA, NA, N…
-$ vb_vf_p2022                                          &lt;chr&gt; NA, NA, NA, NA, N…
-$ vb_vf_p2020                                          &lt;chr&gt; NA, NA, NA, NA, N…
-$ vb_vf_p2018                                          &lt;chr&gt; NA, NA, NA, NA, N…
-$ vb_vf_p2016                                          &lt;chr&gt; NA, NA, NA, NA, N…
-$ vb_vf_g2024                                          &lt;chr&gt; &quot;P&quot;, NA, NA, NA, …
-$ returning_voter                                      &lt;lgl&gt; FALSE, FALSE, FAL…
-$ young_voter                                          &lt;lgl&gt; TRUE, TRUE, TRUE,…
-$ voted_in_one_of_three                                &lt;lgl&gt; TRUE, TRUE, TRUE,…
-$ yob                                                  &lt;dbl&gt; 1993, 1994, 1994,…
-$ voted_24                                             &lt;lgl&gt; TRUE, FALSE, FALS…
-$ voted_22                                             &lt;lgl&gt; FALSE, FALSE, FAL…
-$ voted_20                                             &lt;lgl&gt; TRUE, TRUE, FALSE…
-$ voted_18                                             &lt;lgl&gt; FALSE, FALSE, TRU…
-$ voted_p22                                            &lt;lgl&gt; FALSE, FALSE, FAL…
-$ voted_p20                                            &lt;lgl&gt; FALSE, FALSE, FAL…
-$ voted_p18                                            &lt;lgl&gt; FALSE, FALSE, FAL…
-$ any_phone_attempted                                  &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ any_phone_contacted                                  &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ treatment                                            &lt;chr&gt; &quot;Control&quot;, &quot;Contr…
-$ in_target_state                                      &lt;lgl&gt; TRUE, TRUE, TRUE,…
-$ target_geography                                     &lt;chr&gt; &quot;AZ&quot;, &quot;AZ&quot;, &quot;AZ&quot;,…
-$ target_geography_state                               &lt;fct&gt; AZ, AZ, AZ, AZ, A…
-$ gender                                               &lt;chr&gt; &quot;Women&quot;, &quot;Women&quot;,…
-$ race                                                 &lt;fct&gt; White, White, Lat…
-$ urbanicity                                           &lt;fct&gt; Urban, Urban, Urb…
-$ age                                                  &lt;dbl&gt; 31, 30, 30, 42, 3…
-$ age_bin                                              &lt;fct&gt; 30-44, 30-44, 30-…
-$ ts_tsmart_partisan_score_missing                     &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ ts_tsmart_presidential_general_turnout_score_missing &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ ts_tsmart_ideology_score_missing                     &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ ts_tsmart_college_graduate_score_missing             &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ age_missing                                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
-$ ts_tsmart_presidential_general_turnout_score_sq      &lt;dbl&gt; 3180.96, 2294.41,…
-$ ts_tsmart_partisan_score_sq                          &lt;dbl&gt; 9120.25, 7310.25,…</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>clean_df <span class="sc">%&gt;%</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">sum</span>(<span class="fu">is.na</span>(.)))) <span class="sc">%&gt;%</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">&quot;column&quot;</span>, <span class="at">values_to =</span> <span class="st">&quot;na_count&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(na_count <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>model_df <span class="sc">%&gt;%</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">sum</span>(<span class="fu">is.na</span>(.)))) <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">&quot;column&quot;</span>, <span class="at">values_to =</span> <span class="st">&quot;na_count&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(na_count <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<table class="caption-top table table-sm table-striped small">
+<table class="caption-top">
 <thead>
 <tr class="header">
 <th style="text-align: left;">column</th>
@@ -3405,169 +3203,400 @@ $ ts_tsmart_partisan_score_sq                          &lt;dbl&gt; 9120.25, 7310
 </tr>
 </thead>
 <tbody>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="run-model" class="level2">
+<h2 class="anchored" data-anchor-id="run-model">Run Model</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>itt_model <span class="ot">&lt;-</span> <span class="fu">glm</span>(<span class="at">formula =</span> voted_24 <span class="sc">~</span> .,</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> model_df,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">family =</span> <span class="st">&quot;binomial&quot;</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(itt_model) <span class="sc">%&gt;%</span> <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 51%">
+<col style="width: 12%">
+<col style="width: 11%">
+<col style="width: 12%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">term</th>
+<th style="text-align: right;">estimate</th>
+<th style="text-align: right;">std.error</th>
+<th style="text-align: right;">statistic</th>
+<th style="text-align: right;">p.value</th>
+</tr>
+</thead>
+<tbody>
 <tr class="odd">
-<td style="text-align: left;">vb_tsmart_exact_track</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">(Intercept)</td>
+<td style="text-align: right;">1.3127843</td>
+<td style="text-align: right;">0.3012561</td>
+<td style="text-align: right;">4.3577025</td>
+<td style="text-align: right;">0.0000131</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_tsmart_exact_address_track</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">treat</td>
+<td style="text-align: right;">0.0062963</td>
+<td style="text-align: right;">0.0076678</td>
+<td style="text-align: right;">0.8211324</td>
+<td style="text-align: right;">0.4115708</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">tmc_hh_id</td>
-<td style="text-align: right;">3799</td>
+<td style="text-align: left;">genderWomen</td>
+<td style="text-align: right;">0.1112155</td>
+<td style="text-align: right;">0.0048692</td>
+<td style="text-align: right;">22.8404507</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">file_date</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">age</td>
+<td style="text-align: right;">-0.0088509</td>
+<td style="text-align: right;">0.0002528</td>
+<td style="text-align: right;">-35.0139666</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_vf_source_state</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">target_geography_stateGA</td>
+<td style="text-align: right;">0.0480690</td>
+<td style="text-align: right;">0.0100694</td>
+<td style="text-align: right;">4.7737567</td>
+<td style="text-align: right;">0.0000018</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_tsmart_state</td>
-<td style="text-align: right;">3798</td>
+<td style="text-align: left;">target_geography_stateMI</td>
+<td style="text-align: right;">0.0702602</td>
+<td style="text-align: right;">0.0103801</td>
+<td style="text-align: right;">6.7687396</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_vf_reg_state</td>
-<td style="text-align: right;">3797</td>
+<td style="text-align: left;">target_geography_stateMissing</td>
+<td style="text-align: right;">-14.7197152</td>
+<td style="text-align: right;">14.3765720</td>
+<td style="text-align: right;">-1.0238682</td>
+<td style="text-align: right;">0.3058975</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_vf_cd</td>
-<td style="text-align: right;">3998</td>
+<td style="text-align: left;">target_geography_stateNC</td>
+<td style="text-align: right;">0.2001920</td>
+<td style="text-align: right;">0.0227610</td>
+<td style="text-align: right;">8.7954124</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_voterbase_registration_status</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">target_geography_stateNV</td>
+<td style="text-align: right;">-0.2562160</td>
+<td style="text-align: right;">0.0128070</td>
+<td style="text-align: right;">-20.0059862</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_vf_voter_status</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">target_geography_stateOH</td>
+<td style="text-align: right;">0.2175770</td>
+<td style="text-align: right;">0.0117432</td>
+<td style="text-align: right;">18.5278845</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_voterbase_dob</td>
-<td style="text-align: right;">4116</td>
+<td style="text-align: left;">target_geography_statePA</td>
+<td style="text-align: right;">-0.1102432</td>
+<td style="text-align: right;">0.0091528</td>
+<td style="text-align: right;">-12.0446995</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_voterbase_gender</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">target_geography_stateWI</td>
+<td style="text-align: right;">-0.3745456</td>
+<td style="text-align: right;">0.0158889</td>
+<td style="text-align: right;">-23.5727987</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_voterbase_race</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">target_geography_stateTargeted CD</td>
+<td style="text-align: right;">-0.1048265</td>
+<td style="text-align: right;">0.0085991</td>
+<td style="text-align: right;">-12.1904602</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">civis_race</td>
-<td style="text-align: right;">3770</td>
+<td style="text-align: left;">target_geography_stateOther</td>
+<td style="text-align: right;">-0.0291543</td>
+<td style="text-align: right;">0.0500085</td>
+<td style="text-align: right;">-0.5829873</td>
+<td style="text-align: right;">0.5599019</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_vf_party</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">voted_22TRUE</td>
+<td style="text-align: right;">0.5898567</td>
+<td style="text-align: right;">0.0111169</td>
+<td style="text-align: right;">53.0596383</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_vf_county_name</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">voted_20TRUE</td>
+<td style="text-align: right;">0.5674328</td>
+<td style="text-align: right;">0.0102508</td>
+<td style="text-align: right;">55.3550345</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_tsmart_cd</td>
-<td style="text-align: right;">13553</td>
+<td style="text-align: left;">voted_p22TRUE</td>
+<td style="text-align: right;">0.3643823</td>
+<td style="text-align: right;">0.0138634</td>
+<td style="text-align: right;">26.2837077</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">ts_tsmart_urbanicity</td>
-<td style="text-align: right;">3975</td>
+<td style="text-align: left;">voted_p20TRUE</td>
+<td style="text-align: right;">0.0914476</td>
+<td style="text-align: right;">0.0071682</td>
+<td style="text-align: right;">12.7573651</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_tsmart_address_deliverability_indicator</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">raceBlack</td>
+<td style="text-align: right;">-0.1625058</td>
+<td style="text-align: right;">0.0063856</td>
+<td style="text-align: right;">-25.4487506</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_voterbase_mailable_flag</td>
-<td style="text-align: right;">3769</td>
+<td style="text-align: left;">raceLatino</td>
+<td style="text-align: right;">-0.0895833</td>
+<td style="text-align: right;">0.0071009</td>
+<td style="text-align: right;">-12.6157909</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_voterbase_deceased_flag</td>
-<td style="text-align: right;">826393</td>
+<td style="text-align: left;">raceOther</td>
+<td style="text-align: right;">-0.1691934</td>
+<td style="text-align: right;">0.0101788</td>
+<td style="text-align: right;">-16.6221731</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_vf_g2022</td>
-<td style="text-align: right;">759226</td>
+<td style="text-align: left;">ts_tsmart_presidential_general_turnout_score</td>
+<td style="text-align: right;">0.0226048</td>
+<td style="text-align: right;">0.0014571</td>
+<td style="text-align: right;">15.5139691</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_vf_g2020</td>
-<td style="text-align: right;">54894</td>
+<td style="text-align: left;">ts_tsmart_presidential_general_turnout_score_sq</td>
+<td style="text-align: right;">0.0000019</td>
+<td style="text-align: right;">0.0000143</td>
+<td style="text-align: right;">0.1309686</td>
+<td style="text-align: right;">0.8958001</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_vf_g2018</td>
-<td style="text-align: right;">535401</td>
+<td style="text-align: left;">ts_tsmart_partisan_score</td>
+<td style="text-align: right;">-0.0584376</td>
+<td style="text-align: right;">0.0068944</td>
+<td style="text-align: right;">-8.4761515</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_vf_g2016</td>
-<td style="text-align: right;">690292</td>
+<td style="text-align: left;">ts_tsmart_partisan_score_sq</td>
+<td style="text-align: right;">0.0003331</td>
+<td style="text-align: right;">0.0000394</td>
+<td style="text-align: right;">8.4640082</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_vf_g2014</td>
-<td style="text-align: right;">751552</td>
+<td style="text-align: left;">urbanicitySuburban</td>
+<td style="text-align: right;">0.0033714</td>
+<td style="text-align: right;">0.0051730</td>
+<td style="text-align: right;">0.6517329</td>
+<td style="text-align: right;">0.5145735</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">vb_vf_g2012</td>
-<td style="text-align: right;">598169</td>
+<td style="text-align: left;">urbanicityRural</td>
+<td style="text-align: right;">-0.0973072</td>
+<td style="text-align: right;">0.0074049</td>
+<td style="text-align: right;">-13.1409500</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">vb_vf_p2022</td>
-<td style="text-align: right;">789391</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">vb_vf_p2020</td>
-<td style="text-align: right;">692386</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">vb_vf_p2018</td>
-<td style="text-align: right;">784196</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">vb_vf_p2016</td>
-<td style="text-align: right;">771288</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">vb_vf_g2024</td>
-<td style="text-align: right;">333468</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">yob</td>
-<td style="text-align: right;">4116</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">in_target_state</td>
-<td style="text-align: right;">3797</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">age_bin</td>
-<td style="text-align: right;">4116</td>
+<td style="text-align: left;">ts_tsmart_college_graduate_score</td>
+<td style="text-align: right;">0.0061159</td>
+<td style="text-align: right;">0.0001510</td>
+<td style="text-align: right;">40.4892846</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
 </section>
-<section id="save-cleaned-data" class="level2">
-<h2 class="anchored" data-anchor-id="save-cleaned-data">Save Cleaned Data</h2>
+<section id="get-model-results" class="level2">
+<h2 class="anchored" data-anchor-id="get-model-results">Get Model Results</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">s3write_using</span>(<span class="at">x =</span> clean_df, </span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>              <span class="at">FUN =</span> saveRDS, </span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/clean_df.rds&quot;</span>, </span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">bucket =</span> <span class="st">&quot;tmc-research-projects&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>File size is 53636155. Consider setting &#39;multipart = TRUE&#39;.</code></pre>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate treatment and control group sizes for table</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>n_treat <span class="ot">&lt;-</span> <span class="fu">sum</span>(model_df[[<span class="st">&quot;treat&quot;</span>]] <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>n_control <span class="ot">&lt;-</span> <span class="fu">sum</span>(model_df[[<span class="st">&quot;treat&quot;</span>]] <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate mcfadden adjusted r^2</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>mcfadden_adj_r2 <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(pscl<span class="sc">::</span><span class="fu">pR2</span>(itt_model)[<span class="st">&quot;McFadden&quot;</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>fitting null model for pseudo-r2</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">s3write_using</span>(<span class="at">x =</span> full_clean_df, </span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>              <span class="at">FUN =</span> saveRDS, </span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/full_clean_df.rds&quot;</span>, </span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">bucket =</span> <span class="st">&quot;tmc-research-projects&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>File size is 355348920. Consider setting &#39;multipart = TRUE&#39;.</code></pre>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># run marginal effects</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>ame_treat <span class="ot">&lt;-</span> <span class="fu">avg_slopes</span>(itt_model, <span class="at">variables =</span> <span class="st">&quot;treat&quot;</span>, <span class="at">conf_level =</span> .<span class="dv">9</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>preds <span class="ot">&lt;-</span> <span class="fu">avg_predictions</span>(itt_model, <span class="at">variables =</span> <span class="st">&quot;treat&quot;</span>, <span class="at">conf_level =</span> .<span class="dv">9</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># clean up all results into one pretty table</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>itt_regression_results <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(ame_treat, preds) <span class="sc">%&gt;%</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(<span class="at">regression_type =</span> <span class="st">&quot;logistic&quot;</span>, </span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>         <span class="at">condition =</span> <span class="fu">case_when</span>(treat <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">&quot;control&quot;</span>,</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>                               treat <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">&quot;treatment&quot;</span>,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>                               <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">&quot;treatment - control&quot;</span>),</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">n =</span> <span class="fu">case_when</span>(treat <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> n_control,</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>                       treat <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> n_treat),</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>         <span class="at">predicted_prob =</span> estimate,</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">se =</span> std.error,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>         <span class="at">ci_low_90 =</span> conf.low,</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>         <span class="at">ci_high_90 =</span> conf.high,</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>         <span class="at">p_value =</span> p.value,</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>         <span class="at">adj_rsq =</span> mcfadden_adj_r2) </span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(itt_regression_results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 18%">
+<col style="width: 6%">
+<col style="width: 13%">
+<col style="width: 9%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 9%">
+<col style="width: 8%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">regression_type</th>
+<th style="text-align: left;">condition</th>
+<th style="text-align: right;">n</th>
+<th style="text-align: right;">predicted_prob</th>
+<th style="text-align: right;">se</th>
+<th style="text-align: right;">ci_low_90</th>
+<th style="text-align: right;">ci_high_90</th>
+<th style="text-align: right;">p_value</th>
+<th style="text-align: right;">adj_rsq</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">logistic</td>
+<td style="text-align: left;">treatment - control</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.0014350</td>
+<td style="text-align: right;">0.0017483</td>
+<td style="text-align: right;">-0.0014408</td>
+<td style="text-align: right;">0.0043107</td>
+<td style="text-align: right;">0.4117797</td>
+<td style="text-align: right;">0.042309</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">logistic</td>
+<td style="text-align: left;">control</td>
+<td style="text-align: right;">82943</td>
+<td style="text-align: right;">0.5951867</td>
+<td style="text-align: right;">0.0016584</td>
+<td style="text-align: right;">0.5924589</td>
+<td style="text-align: right;">0.5979145</td>
+<td style="text-align: right;">0.0000000</td>
+<td style="text-align: right;">0.042309</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">logistic</td>
+<td style="text-align: left;">treatment</td>
+<td style="text-align: right;">743450</td>
+<td style="text-align: right;">0.5966217</td>
+<td style="text-align: right;">0.0005523</td>
+<td style="text-align: right;">0.5957132</td>
+<td style="text-align: right;">0.5975301</td>
+<td style="text-align: right;">0.0000000</td>
+<td style="text-align: right;">0.042309</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
+</section>
+<section id="save-regression-results" class="level2">
+<h2 class="anchored" data-anchor-id="save-regression-results">Save Regression Results</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">s3write_using</span>(<span class="at">x =</span> itt_regression_results, </span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>              <span class="at">FUN =</span> write_csv, </span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/regression_results.csv&quot;</span>, </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">bucket =</span> <span class="st">&quot;tmc-research-projects&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="power-calculation" class="level2">
+<h2 class="anchored" data-anchor-id="power-calculation">Power Calculation</h2>
+<p>This section does not actually run the power calculation but gets all the numbers you need to run it on the AI tool.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># universe size</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(clean_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 826393</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># outcome collection rate</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(<span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(clean_df<span class="sc">$</span>vb_tsmart_exact_track)) <span class="sc">/</span> <span class="fu">nrow</span>(clean_df), <span class="at">digits =</span> <span class="dv">2</span>) <span class="sc">*</span> <span class="dv">100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># percent in treatment group</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(<span class="dv">100</span><span class="sc">*</span><span class="fu">sum</span>(clean_df<span class="sc">$</span>treat<span class="sc">==</span><span class="dv">1</span>) <span class="sc">/</span> <span class="fu">nrow</span>(clean_df))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 90</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># turnout rate in control</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>clean_df <span class="sc">%&gt;%</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(treat <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">turnout_rate =</span> <span class="dv">100</span> <span class="sc">*</span> <span class="fu">mean</span>(voted_24)) <span class="sc">%&gt;%</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(turnout_rate) <span class="sc">%&gt;%</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 59</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># contact rate</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>clean_df <span class="sc">%&gt;%</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(treat <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">contact_rate =</span> <span class="dv">100</span><span class="sc">*</span> <span class="fu">mean</span>(exp_contacted)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(contact_rate) <span class="sc">%&gt;%</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># predictive power of covariates</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(mcfadden_adj_r2, <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.04</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># power of experiment</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="dv">80</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 80</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># confidence</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="dv">90</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 90</code></pre>
+</div>
+</div>
+<p>When these numbers are plugged into the AI tool, you’d expect to reliably measure an effect of 4.4pp.</p>
 </section>
 
 </main>
