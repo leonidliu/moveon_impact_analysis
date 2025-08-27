@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Andy Zack">
-<meta name="dcterms.date" content="2025-08-26">
+<meta name="dcterms.date" content="2025-08-27">
 
 <title>3 Clean and Merge Datasets</title>
 <style>
@@ -3106,7 +3106,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 26, 2025</p>
+      <p class="date">August 27, 2025</p>
     </div>
   </div>
   
@@ -3279,8 +3279,9 @@ dbl (1): treat
 <span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">impute_with_missing_flag</span>(ts_tsmart_presidential_general_turnout_score) <span class="sc">%&gt;%</span></span>
 <span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">impute_with_missing_flag</span>(ts_tsmart_ideology_score) <span class="sc">%&gt;%</span></span>
 <span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a>  <span class="fu">impute_with_missing_flag</span>(ts_tsmart_college_graduate_score) <span class="sc">%&gt;%</span></span>
-<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ts_tsmart_presidential_general_turnout_score_sq =</span> ts_tsmart_presidential_general_turnout_score<span class="sc">^</span><span class="dv">2</span>,</span>
-<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>         <span class="at">ts_tsmart_partisan_score_sq =</span> ts_tsmart_partisan_score<span class="sc">^</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>  <span class="fu">impute_with_missing_flag</span>(age) <span class="sc">%&gt;%</span></span>
+<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ts_tsmart_presidential_general_turnout_score_sq =</span> ts_tsmart_presidential_general_turnout_score<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a>         <span class="at">ts_tsmart_partisan_score_sq =</span> ts_tsmart_partisan_score<span class="sc">^</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Joining with `by = join_by(vb_voterbase_id)`
 Joining with `by = join_by(vb_voterbase_id)`</code></pre>
@@ -3303,16 +3304,16 @@ Joining with `by = join_by(vb_voterbase_id)`</code></pre>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(clean_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 826393     75</code></pre>
+<pre><code>[1] 826393     76</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(full_clean_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 4608154      75</code></pre>
+<pre><code>[1] 4608154      76</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(clean_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Rows: 826,393
-Columns: 75
+Columns: 76
 $ vb_voterbase_id                                      &lt;chr&gt; &quot;AZ-5692425&quot;, &quot;AZ…
 $ treat                                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
 $ postcard_attempted                                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
@@ -3386,6 +3387,7 @@ $ ts_tsmart_partisan_score_missing                     &lt;dbl&gt; 0, 0, 0, 0, 0
 $ ts_tsmart_presidential_general_turnout_score_missing &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
 $ ts_tsmart_ideology_score_missing                     &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
 $ ts_tsmart_college_graduate_score_missing             &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
+$ age_missing                                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0,…
 $ ts_tsmart_presidential_general_turnout_score_sq      &lt;dbl&gt; 3180.96, 2294.41,…
 $ ts_tsmart_partisan_score_sq                          &lt;dbl&gt; 9120.25, 7310.25,…</code></pre>
 </div>
@@ -3540,10 +3542,6 @@ $ ts_tsmart_partisan_score_sq                          &lt;dbl&gt; 9120.25, 7310
 <td style="text-align: right;">3797</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">age</td>
-<td style="text-align: right;">4116</td>
-</tr>
-<tr class="even">
 <td style="text-align: left;">age_bin</td>
 <td style="text-align: right;">4116</td>
 </tr>
@@ -3560,14 +3558,14 @@ $ ts_tsmart_partisan_score_sq                          &lt;dbl&gt; 9120.25, 7310
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/clean_df.rds&quot;</span>, </span>
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">bucket =</span> <span class="st">&quot;tmc-research-projects&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>File size is 53619069. Consider setting &#39;multipart = TRUE&#39;.</code></pre>
+<pre><code>File size is 53636155. Consider setting &#39;multipart = TRUE&#39;.</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">s3write_using</span>(<span class="at">x =</span> full_clean_df, </span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>              <span class="at">FUN =</span> saveRDS, </span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/full_clean_df.rds&quot;</span>, </span>
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">bucket =</span> <span class="st">&quot;tmc-research-projects&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>File size is 355180706. Consider setting &#39;multipart = TRUE&#39;.</code></pre>
+<pre><code>File size is 355348920. Consider setting &#39;multipart = TRUE&#39;.</code></pre>
 </div>
 </div>
 </section>

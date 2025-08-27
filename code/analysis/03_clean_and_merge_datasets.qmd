@@ -153,6 +153,7 @@ full_clean_df <- df %>%
   impute_with_missing_flag(ts_tsmart_presidential_general_turnout_score) %>%
   impute_with_missing_flag(ts_tsmart_ideology_score) %>%
   impute_with_missing_flag(ts_tsmart_college_graduate_score) %>%
+  impute_with_missing_flag(age) %>%
   mutate(ts_tsmart_presidential_general_turnout_score_sq = ts_tsmart_presidential_general_turnout_score^2,
          ts_tsmart_partisan_score_sq = ts_tsmart_partisan_score^2)
   
