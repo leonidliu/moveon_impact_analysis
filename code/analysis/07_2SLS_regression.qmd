@@ -1,0 +1,108 @@
+---
+title: "7 2SLS Regression"
+author: "Andy Zack"
+date: "`r Sys.Date()`"
+format: html
+self-contained: true
+editor: source
+---
+
+## Load Packages
+
+```{r load_packages}
+#| message: false
+library(tidyverse)
+library(aws.s3)
+library(kableExtra)
+library(broom)
+library(fixest)
+```
+
+## Other Setup
+
+```{r other_setup}
+Sys.setenv("AWS_ACCESS_KEY_ID" = Sys.getenv("TMC_s3_access_key"),
+           "AWS_SECRET_ACCESS_KEY" = Sys.getenv("TMC_s3_secret_key"))
+
+bucket = "tmc-research-projects"
+```
+
+## Load Data
+
+```{r load_data}
+clean_df <- s3read_using(
+  FUN = read_rds,
+  bucket = bucket,
+  object = "p080_moveon_impact_analysis/clean_df.rds")
+
+full_clean_df <- s3read_using(
+  FUN = read_rds,
+  bucket = bucket,
+  object = "p080_moveon_impact_analysis/full_clean_df.rds")
+```
+
+## Run 2SLS Regression
+
+```{r run_regression}
+fit_2sls <- feols(
+  voted_24 ~ 
+    gender +
+    age +
+    target_geography_state +
+    voted_22 +
+    voted_20 +
+    voted_p22 +
+    voted_p20 +
+    race +
+    ts_tsmart_presidential_general_turnout_score +
+    ts_tsmart_presidential_general_turnout_score_sq +
+    ts_tsmart_partisan_score +
+    ts_tsmart_partisan_score_sq +
+    urbanicity +
+    ts_tsmart_college_graduate_score |  
+    # IV part: 
+    exp_contacted ~ treat,
+  data = clean_df)
+```
+
+## Print Regression Results
+
+I'm not sure exactly how to get the 2SLS results in the format that you normally want them, or how you'd even interpret that. My understanding is that 2SLS typically just uses linear regression though so the coefficient is directly interpretable. I'm adding +/- 1.645\*SE to get a 90% CI though
+
+```{r print_regression_results}
+tidy(fit_2sls) %>%
+  kable()
+
+fitstat(fit_2sls, "ivf")
+
+effect_size <- coef(fit_2sls)['fit_exp_contacted']
+SE <- as.numeric(tidy(fit_2sls)[2,3])
+
+#CI Low 90
+effect_size - (1.645*SE)
+# CI High 90
+effect_size + (1.645*SE)
+```
+
+The F test is significant and above 10, which is good. That means that the IV setup is reasonable; The instrument strongly predicts contact and is not a weak instrument. Being contacted does not significantly increase turnout, though the best estimate is that it increases turnout by 1.4pp.
+
+## Net Votes
+
+```{r net_votes}
+num_contacted <- sum(full_clean_df$exp_contacted)
+mean_partisanship <- mean(full_clean_df$ts_tsmart_partisan_score)
+adjustment_factor <- ((mean_partisanship - 50) * 2) / 100
+
+# Net votes
+num_contacted * effect_size
+
+# Net Dem Votes
+num_contacted * effect_size * adjustment_factor
+
+# Low 90 CI Net Dem Votes
+num_contacted * (effect_size - (1.645*SE)) * adjustment_factor
+
+# High 90 CI Net Dem Votes
+num_contacted * (effect_size + (1.645*SE)) * adjustment_factor
+
+```
