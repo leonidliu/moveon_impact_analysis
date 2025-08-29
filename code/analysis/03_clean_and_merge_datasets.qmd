@@ -180,9 +180,43 @@ clean_df %>%
   kable()
 ```
 
+## Make Model Data
+
+This section also cleans up some of the factors that have no people in them. That is what `droplevels()` does. I think this should make the `marginaleffects::avg_predictions()` run smoothly without error.
+
+```{r make_model_data}
+model_df <- clean_df %>%
+  select(treat,
+         voted_24,
+         gender,
+         age,
+         target_geography_state,
+         voted_22,
+         voted_20,
+         voted_p22,
+         voted_p20,
+         race,
+         ts_tsmart_presidential_general_turnout_score,
+         ts_tsmart_presidential_general_turnout_score_sq,
+         ts_tsmart_partisan_score,
+         ts_tsmart_partisan_score_sq,
+         urbanicity,
+         ts_tsmart_college_graduate_score) %>%
+  droplevels()
+  
+
+nrow(clean_df) 
+nrow(model_df)
+```
+
 ## Save Cleaned Data
 
 ```{r save_cleaned_datasets}
+s3write_using(x = model_df, 
+              FUN = saveRDS, 
+              object = "p080_moveon_impact_analysis/model_df.rds", 
+              bucket = "tmc-research-projects")
+
 s3write_using(x = clean_df, 
               FUN = saveRDS, 
               object = "p080_moveon_impact_analysis/clean_df.rds", 

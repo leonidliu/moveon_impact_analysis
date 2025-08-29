@@ -39,44 +39,13 @@ bucket = "tmc-research-projects"
 ## Load Data
 
 ```{r load_data}
-clean_df <- s3read_using(
+model_df <- s3read_using(
   FUN = read_rds,
   bucket = bucket,
-  object = "p080_moveon_impact_analysis/clean_df.rds")
+  object = "p080_moveon_impact_analysis/model_df.rds")
 ```
 
-## Clean Data
-
-This section drops the \~3,000 people that could not be matched to the voterfile. We could instead just count them as not voted. It is so few people that it probably does not matter either way.
-
-This section also cleans up some of the factors that have no people in them. That is what `droplevels()` does. I think this should make the `marginaleffects::avg_predictions()` run smoothly without error.
-
-```{r make_model_df}
-model_df <- clean_df %>%
-  select(treat,
-         voted_24,
-         gender,
-         age,
-         target_geography_state,
-         voted_22,
-         voted_20,
-         voted_p22,
-         voted_p20,
-         race,
-         ts_tsmart_presidential_general_turnout_score,
-         ts_tsmart_presidential_general_turnout_score_sq,
-         ts_tsmart_partisan_score,
-         ts_tsmart_partisan_score_sq,
-         urbanicity,
-         ts_tsmart_college_graduate_score) %>%
-  droplevels()
-  
-
-nrow(clean_df) 
-nrow(model_df)
-```
-
-## Impute Missing
+## Check Missing
 
 No columns have missing data. Everything that had been missing was imputed in the clean data step.
 
@@ -146,23 +115,23 @@ This section does not actually run the power calculation but gets all the number
 
 ```{r power_calc}
 # universe size
-nrow(clean_df)
+nrow(model_df)
 
 # outcome collection rate
-round(1 - sum(is.na(clean_df$vb_tsmart_exact_track)) / nrow(clean_df), digits = 2) * 100
+round(1 - sum(is.na(model_df$vb_tsmart_exact_track)) / nrow(model_df), digits = 2) * 100
 
 # percent in treatment group
-round(100*sum(clean_df$treat==1) / nrow(clean_df))
+round(100*sum(model_df$treat==1) / nrow(model_df))
 
 # turnout rate in control
-clean_df %>%
+model_df %>%
   filter(treat == 0) %>%
   summarise(turnout_rate = 100 * mean(voted_24)) %>%
   pull(turnout_rate) %>%
   round()
 
 # contact rate
-clean_df %>%
+model_df %>%
   filter(treat == 1) %>%
   summarise(contact_rate = 100* mean(exp_contacted)) %>%
   pull(contact_rate) %>%
