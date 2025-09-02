@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Andy Zack">
-<meta name="dcterms.date" content="2025-08-27">
+<meta name="dcterms.date" content="2025-09-02">
 
 <title>6 ITT Regression</title>
 <style>
@@ -3106,7 +3106,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 27, 2025</p>
+      <p class="date">September 2, 2025</p>
     </div>
   </div>
   
@@ -3211,18 +3211,17 @@ vertical-align: -.125em;
 <section id="run-model" class="level2">
 <h2 class="anchored" data-anchor-id="run-model">Run Model</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>itt_model <span class="ot">&lt;-</span> <span class="fu">glm</span>(<span class="at">formula =</span> voted_24 <span class="sc">~</span> .,</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> model_df,</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">family =</span> <span class="st">&quot;binomial&quot;</span>)</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(itt_model) <span class="sc">%&gt;%</span> <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>itt_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="at">formula =</span> voted_24 <span class="sc">~</span> .,</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> model_df)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(itt_model) <span class="sc">%&gt;%</span> <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
-<col style="width: 51%">
+<col style="width: 52%">
 <col style="width: 12%">
-<col style="width: 11%">
-<col style="width: 12%">
+<col style="width: 10%">
+<col style="width: 13%">
 <col style="width: 10%">
 </colgroup>
 <thead>
@@ -3237,198 +3236,198 @@ vertical-align: -.125em;
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">(Intercept)</td>
-<td style="text-align: right;">1.3127843</td>
-<td style="text-align: right;">0.3012561</td>
-<td style="text-align: right;">4.3577025</td>
-<td style="text-align: right;">0.0000131</td>
+<td style="text-align: right;">0.7986731</td>
+<td style="text-align: right;">0.0688919</td>
+<td style="text-align: right;">11.5931416</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">treat</td>
-<td style="text-align: right;">0.0062963</td>
-<td style="text-align: right;">0.0076678</td>
-<td style="text-align: right;">0.8211324</td>
-<td style="text-align: right;">0.4115708</td>
+<td style="text-align: right;">0.0014515</td>
+<td style="text-align: right;">0.0017477</td>
+<td style="text-align: right;">0.8305232</td>
+<td style="text-align: right;">0.4062433</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">genderWomen</td>
-<td style="text-align: right;">0.1112155</td>
-<td style="text-align: right;">0.0048692</td>
-<td style="text-align: right;">22.8404507</td>
+<td style="text-align: right;">0.0260362</td>
+<td style="text-align: right;">0.0011133</td>
+<td style="text-align: right;">23.3856276</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">age</td>
-<td style="text-align: right;">-0.0088509</td>
-<td style="text-align: right;">0.0002528</td>
-<td style="text-align: right;">-35.0139666</td>
+<td style="text-align: right;">-0.0018375</td>
+<td style="text-align: right;">0.0000572</td>
+<td style="text-align: right;">-32.1019865</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">target_geography_stateGA</td>
-<td style="text-align: right;">0.0480690</td>
-<td style="text-align: right;">0.0100694</td>
-<td style="text-align: right;">4.7737567</td>
-<td style="text-align: right;">0.0000018</td>
+<td style="text-align: right;">0.0110013</td>
+<td style="text-align: right;">0.0022975</td>
+<td style="text-align: right;">4.7883963</td>
+<td style="text-align: right;">0.0000017</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">target_geography_stateMI</td>
-<td style="text-align: right;">0.0702602</td>
-<td style="text-align: right;">0.0103801</td>
-<td style="text-align: right;">6.7687396</td>
+<td style="text-align: right;">0.0142312</td>
+<td style="text-align: right;">0.0023610</td>
+<td style="text-align: right;">6.0275213</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">target_geography_stateMissing</td>
-<td style="text-align: right;">-14.7197152</td>
-<td style="text-align: right;">14.3765720</td>
-<td style="text-align: right;">-1.0238682</td>
-<td style="text-align: right;">0.3058975</td>
+<td style="text-align: right;">-0.5273960</td>
+<td style="text-align: right;">0.0084724</td>
+<td style="text-align: right;">-62.2487756</td>
+<td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">target_geography_stateNC</td>
-<td style="text-align: right;">0.2001920</td>
-<td style="text-align: right;">0.0227610</td>
-<td style="text-align: right;">8.7954124</td>
+<td style="text-align: right;">0.0450666</td>
+<td style="text-align: right;">0.0050916</td>
+<td style="text-align: right;">8.8511289</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">target_geography_stateNV</td>
-<td style="text-align: right;">-0.2562160</td>
-<td style="text-align: right;">0.0128070</td>
-<td style="text-align: right;">-20.0059862</td>
+<td style="text-align: right;">-0.0600586</td>
+<td style="text-align: right;">0.0029744</td>
+<td style="text-align: right;">-20.1917087</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">target_geography_stateOH</td>
-<td style="text-align: right;">0.2175770</td>
-<td style="text-align: right;">0.0117432</td>
-<td style="text-align: right;">18.5278845</td>
+<td style="text-align: right;">0.0496446</td>
+<td style="text-align: right;">0.0026387</td>
+<td style="text-align: right;">18.8142410</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">target_geography_statePA</td>
-<td style="text-align: right;">-0.1102432</td>
-<td style="text-align: right;">0.0091528</td>
-<td style="text-align: right;">-12.0446995</td>
+<td style="text-align: right;">-0.0264723</td>
+<td style="text-align: right;">0.0020985</td>
+<td style="text-align: right;">-12.6151046</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">target_geography_stateWI</td>
-<td style="text-align: right;">-0.3745456</td>
-<td style="text-align: right;">0.0158889</td>
-<td style="text-align: right;">-23.5727987</td>
+<td style="text-align: right;">-0.0837590</td>
+<td style="text-align: right;">0.0036594</td>
+<td style="text-align: right;">-22.8886307</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">target_geography_stateTargeted CD</td>
-<td style="text-align: right;">-0.1048265</td>
-<td style="text-align: right;">0.0085991</td>
-<td style="text-align: right;">-12.1904602</td>
+<td style="text-align: right;">-0.0238998</td>
+<td style="text-align: right;">0.0019742</td>
+<td style="text-align: right;">-12.1058485</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">target_geography_stateOther</td>
-<td style="text-align: right;">-0.0291543</td>
-<td style="text-align: right;">0.0500085</td>
-<td style="text-align: right;">-0.5829873</td>
-<td style="text-align: right;">0.5599019</td>
+<td style="text-align: right;">-0.0063815</td>
+<td style="text-align: right;">0.0114550</td>
+<td style="text-align: right;">-0.5570933</td>
+<td style="text-align: right;">0.5774639</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">voted_22TRUE</td>
-<td style="text-align: right;">0.5898567</td>
-<td style="text-align: right;">0.0111169</td>
-<td style="text-align: right;">53.0596383</td>
+<td style="text-align: right;">0.1149947</td>
+<td style="text-align: right;">0.0022864</td>
+<td style="text-align: right;">50.2947621</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">voted_20TRUE</td>
-<td style="text-align: right;">0.5674328</td>
-<td style="text-align: right;">0.0102508</td>
-<td style="text-align: right;">55.3550345</td>
+<td style="text-align: right;">0.1411462</td>
+<td style="text-align: right;">0.0023660</td>
+<td style="text-align: right;">59.6557639</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">voted_p22TRUE</td>
-<td style="text-align: right;">0.3643823</td>
-<td style="text-align: right;">0.0138634</td>
-<td style="text-align: right;">26.2837077</td>
+<td style="text-align: right;">0.0653196</td>
+<td style="text-align: right;">0.0027674</td>
+<td style="text-align: right;">23.6036055</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">voted_p20TRUE</td>
-<td style="text-align: right;">0.0914476</td>
-<td style="text-align: right;">0.0071682</td>
-<td style="text-align: right;">12.7573651</td>
+<td style="text-align: right;">0.0206284</td>
+<td style="text-align: right;">0.0015868</td>
+<td style="text-align: right;">13.0002468</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">raceBlack</td>
-<td style="text-align: right;">-0.1625058</td>
-<td style="text-align: right;">0.0063856</td>
-<td style="text-align: right;">-25.4487506</td>
+<td style="text-align: right;">-0.0376606</td>
+<td style="text-align: right;">0.0014620</td>
+<td style="text-align: right;">-25.7590426</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">raceLatino</td>
-<td style="text-align: right;">-0.0895833</td>
-<td style="text-align: right;">0.0071009</td>
-<td style="text-align: right;">-12.6157909</td>
+<td style="text-align: right;">-0.0219643</td>
+<td style="text-align: right;">0.0016396</td>
+<td style="text-align: right;">-13.3957859</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">raceOther</td>
-<td style="text-align: right;">-0.1691934</td>
-<td style="text-align: right;">0.0101788</td>
-<td style="text-align: right;">-16.6221731</td>
+<td style="text-align: right;">-0.0396546</td>
+<td style="text-align: right;">0.0023502</td>
+<td style="text-align: right;">-16.8727239</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">ts_tsmart_presidential_general_turnout_score</td>
-<td style="text-align: right;">0.0226048</td>
-<td style="text-align: right;">0.0014571</td>
-<td style="text-align: right;">15.5139691</td>
+<td style="text-align: right;">0.0066754</td>
+<td style="text-align: right;">0.0003259</td>
+<td style="text-align: right;">20.4840479</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">ts_tsmart_presidential_general_turnout_score_sq</td>
-<td style="text-align: right;">0.0000019</td>
-<td style="text-align: right;">0.0000143</td>
-<td style="text-align: right;">0.1309686</td>
-<td style="text-align: right;">0.8958001</td>
+<td style="text-align: right;">-0.0000167</td>
+<td style="text-align: right;">0.0000032</td>
+<td style="text-align: right;">-5.2701244</td>
+<td style="text-align: right;">0.0000001</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">ts_tsmart_partisan_score</td>
-<td style="text-align: right;">-0.0584376</td>
-<td style="text-align: right;">0.0068944</td>
-<td style="text-align: right;">-8.4761515</td>
+<td style="text-align: right;">-0.0143752</td>
+<td style="text-align: right;">0.0015764</td>
+<td style="text-align: right;">-9.1192533</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">ts_tsmart_partisan_score_sq</td>
-<td style="text-align: right;">0.0003331</td>
-<td style="text-align: right;">0.0000394</td>
-<td style="text-align: right;">8.4640082</td>
+<td style="text-align: right;">0.0000822</td>
+<td style="text-align: right;">0.0000090</td>
+<td style="text-align: right;">9.1412908</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">urbanicitySuburban</td>
-<td style="text-align: right;">0.0033714</td>
-<td style="text-align: right;">0.0051730</td>
-<td style="text-align: right;">0.6517329</td>
-<td style="text-align: right;">0.5145735</td>
+<td style="text-align: right;">0.0012671</td>
+<td style="text-align: right;">0.0011793</td>
+<td style="text-align: right;">1.0744166</td>
+<td style="text-align: right;">0.2826363</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">urbanicityRural</td>
-<td style="text-align: right;">-0.0973072</td>
-<td style="text-align: right;">0.0074049</td>
-<td style="text-align: right;">-13.1409500</td>
+<td style="text-align: right;">-0.0205496</td>
+<td style="text-align: right;">0.0016927</td>
+<td style="text-align: right;">-12.1401360</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">ts_tsmart_college_graduate_score</td>
-<td style="text-align: right;">0.0061159</td>
-<td style="text-align: right;">0.0001510</td>
-<td style="text-align: right;">40.4892846</td>
+<td style="text-align: right;">0.0013919</td>
+<td style="text-align: right;">0.0000342</td>
+<td style="text-align: right;">40.6852215</td>
 <td style="text-align: right;">0.0000000</td>
 </tr>
 </tbody>
@@ -3455,7 +3454,7 @@ vertical-align: -.125em;
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># clean up all results into one pretty table</span></span>
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>itt_regression_results <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(ame_treat, preds) <span class="sc">%&gt;%</span></span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(<span class="at">regression_type =</span> <span class="st">&quot;logistic&quot;</span>, </span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(<span class="at">regression_type =</span> <span class="st">&quot;OLS&quot;</span>, </span>
 <span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>         <span class="at">condition =</span> <span class="fu">case_when</span>(treat <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">&quot;control&quot;</span>,</span>
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>                               treat <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">&quot;treatment&quot;</span>,</span>
 <span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>                               <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">&quot;treatment - control&quot;</span>),</span>
@@ -3480,7 +3479,7 @@ vertical-align: -.125em;
 <col style="width: 10%">
 <col style="width: 10%">
 <col style="width: 9%">
-<col style="width: 8%">
+<col style="width: 9%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -3497,37 +3496,37 @@ vertical-align: -.125em;
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">logistic</td>
+<td style="text-align: left;">OLS</td>
 <td style="text-align: left;">treatment - control</td>
 <td style="text-align: right;">NA</td>
-<td style="text-align: right;">0.0014350</td>
-<td style="text-align: right;">0.0017483</td>
-<td style="text-align: right;">-0.0014408</td>
-<td style="text-align: right;">0.0043107</td>
-<td style="text-align: right;">0.4117797</td>
-<td style="text-align: right;">0.042309</td>
+<td style="text-align: right;">0.0014515</td>
+<td style="text-align: right;">0.0017477</td>
+<td style="text-align: right;">-0.0014232</td>
+<td style="text-align: right;">0.0043261</td>
+<td style="text-align: right;">0.4062431</td>
+<td style="text-align: right;">0.0386626</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">logistic</td>
+<td style="text-align: left;">OLS</td>
 <td style="text-align: left;">control</td>
 <td style="text-align: right;">82943</td>
-<td style="text-align: right;">0.5951867</td>
-<td style="text-align: right;">0.0016584</td>
-<td style="text-align: right;">0.5924589</td>
-<td style="text-align: right;">0.5979145</td>
+<td style="text-align: right;">0.5951719</td>
+<td style="text-align: right;">0.0016576</td>
+<td style="text-align: right;">0.5924454</td>
+<td style="text-align: right;">0.5978985</td>
 <td style="text-align: right;">0.0000000</td>
-<td style="text-align: right;">0.042309</td>
+<td style="text-align: right;">0.0386626</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">logistic</td>
+<td style="text-align: left;">OLS</td>
 <td style="text-align: left;">treatment</td>
 <td style="text-align: right;">743450</td>
-<td style="text-align: right;">0.5966217</td>
-<td style="text-align: right;">0.0005523</td>
-<td style="text-align: right;">0.5957132</td>
-<td style="text-align: right;">0.5975301</td>
+<td style="text-align: right;">0.5966234</td>
+<td style="text-align: right;">0.0005538</td>
+<td style="text-align: right;">0.5957125</td>
+<td style="text-align: right;">0.5975343</td>
 <td style="text-align: right;">0.0000000</td>
-<td style="text-align: right;">0.042309</td>
+<td style="text-align: right;">0.0386626</td>
 </tr>
 </tbody>
 </table>

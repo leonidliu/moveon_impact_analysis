@@ -16,6 +16,7 @@ library(aws.s3)
 library(kableExtra)
 library(broom)
 library(fixest)
+library(marginaleffects)
 ```
 
 ## Other Setup
@@ -34,11 +35,17 @@ clean_df <- s3read_using(
   FUN = read_rds,
   bucket = bucket,
   object = "p080_moveon_impact_analysis/clean_df.rds")
+```
 
-full_clean_df <- s3read_using(
-  FUN = read_rds,
+## Load ITT regressions results
+
+```{r read_reg_results}
+#| message: false
+regression_results <- s3read_using(
+  FUN = read_csv,
   bucket = bucket,
-  object = "p080_moveon_impact_analysis/full_clean_df.rds")
+  object = "p080_moveon_impact_analysis/regression_results.csv"
+)
 ```
 
 ## Run 2SLS Regression
@@ -67,42 +74,57 @@ fit_2sls <- feols(
 
 ## Print Regression Results
 
-I'm not sure exactly how to get the 2SLS results in the format that you normally want them, or how you'd even interpret that. My understanding is that 2SLS typically just uses linear regression though so the coefficient is directly interpretable. I'm adding +/- 1.645\*SE to get a 90% CI though
-
 ```{r print_regression_results}
 tidy(fit_2sls) %>%
   kable()
 
 fitstat(fit_2sls, "ivf")
 
-effect_size <- coef(fit_2sls)['fit_exp_contacted']
-SE <- as.numeric(tidy(fit_2sls)[2,3])
+ame_contacted <- avg_slopes(fit_2sls, variables = "exp_contacted", conf_level = .9)
+preds <- avg_predictions(fit_2sls, variables = "exp_contacted", conf_level = .9)
+r_squared <- r2(fit_2sls)['r2']
+n_contacted <- sum(clean_df$exp_contacted)
+n_not_contacted <- sum(clean_df$exp_contacted == 0)
+  
+ame_contacted_clean <- ame_contacted %>%
+  tidy() %>%
+  transmute(regression_type = "2SLS",
+            condition = "contacted - not contacted",
+            n = NA,
+            predicted_prob = estimate,
+            se = std.error,
+            ci_low_90 = conf.low,
+            ci_high_90 = conf.high,
+            p_value = p.value,
+            adj_rsq = r_squared)
 
-#CI Low 90
-effect_size - (1.645*SE)
-# CI High 90
-effect_size + (1.645*SE)
+preds_clean <- preds %>%
+  tidy() %>%
+  transmute(regression_type = "2SLS",
+            condition = if_else(exp_contacted == 1, "contacted", "not contacted"),
+            n = if_else(exp_contacted == 1, n_contacted, n_not_contacted),
+            predicted_prob = estimate,
+            se = std.error,
+            ci_low_90 = conf.low,
+            ci_high_90 = conf.high,
+            p_value = p.value,
+            adj_rsq = r_squared)
+
+all_regression_results <- regression_results %>%
+  filter(regression_type == "OLS") %>%
+  bind_rows(ame_contacted_clean) %>%
+  bind_rows(preds_clean)
+
+kable(all_regression_results)
 ```
 
 The F test is significant and above 10, which is good. That means that the IV setup is reasonable; The instrument strongly predicts contact and is not a weak instrument. Being contacted does not significantly increase turnout, though the best estimate is that it increases turnout by 1.4pp.
 
-## Net Votes
+## Save Regression Results
 
-```{r net_votes}
-num_contacted <- sum(full_clean_df$exp_contacted)
-mean_partisanship <- mean(full_clean_df$ts_tsmart_partisan_score)
-adjustment_factor <- ((mean_partisanship - 50) * 2) / 100
-
-# Net votes
-num_contacted * effect_size
-
-# Net Dem Votes
-num_contacted * effect_size * adjustment_factor
-
-# Low 90 CI Net Dem Votes
-num_contacted * (effect_size - (1.645*SE)) * adjustment_factor
-
-# High 90 CI Net Dem Votes
-num_contacted * (effect_size + (1.645*SE)) * adjustment_factor
-
+```{r}
+s3write_using(x = all_regression_results, 
+              FUN = write_csv, 
+              object = "p080_moveon_impact_analysis/regression_results.csv", 
+              bucket = "tmc-research-projects")
 ```
