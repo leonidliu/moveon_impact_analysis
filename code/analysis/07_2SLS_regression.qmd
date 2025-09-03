@@ -1,0 +1,130 @@
+---
+title: "7 2SLS Regression"
+author: "Andy Zack"
+date: "`r Sys.Date()`"
+format: html
+self-contained: true
+editor: source
+---
+
+## Load Packages
+
+```{r load_packages}
+#| message: false
+library(tidyverse)
+library(aws.s3)
+library(kableExtra)
+library(broom)
+library(fixest)
+library(marginaleffects)
+```
+
+## Other Setup
+
+```{r other_setup}
+Sys.setenv("AWS_ACCESS_KEY_ID" = Sys.getenv("TMC_s3_access_key"),
+           "AWS_SECRET_ACCESS_KEY" = Sys.getenv("TMC_s3_secret_key"))
+
+bucket = "tmc-research-projects"
+```
+
+## Load Data
+
+```{r load_data}
+clean_df <- s3read_using(
+  FUN = read_rds,
+  bucket = bucket,
+  object = "p080_moveon_impact_analysis/clean_df.rds")
+```
+
+## Load ITT regressions results
+
+```{r read_reg_results}
+#| message: false
+regression_results <- s3read_using(
+  FUN = read_csv,
+  bucket = bucket,
+  object = "p080_moveon_impact_analysis/regression_results.csv"
+)
+```
+
+## Run 2SLS Regression
+
+```{r run_regression}
+fit_2sls <- feols(
+  voted_24 ~ 
+    gender +
+    age +
+    target_geography_state +
+    voted_22 +
+    voted_20 +
+    voted_p22 +
+    voted_p20 +
+    race +
+    ts_tsmart_presidential_general_turnout_score +
+    ts_tsmart_presidential_general_turnout_score_sq +
+    ts_tsmart_partisan_score +
+    ts_tsmart_partisan_score_sq +
+    urbanicity +
+    ts_tsmart_college_graduate_score |  
+    # IV part: 
+    exp_contacted ~ treat,
+  data = clean_df)
+```
+
+## Print Regression Results
+
+```{r print_regression_results}
+tidy(fit_2sls) %>%
+  kable()
+
+fitstat(fit_2sls, "ivf")
+
+ame_contacted <- avg_slopes(fit_2sls, variables = "exp_contacted", conf_level = .9)
+preds <- avg_predictions(fit_2sls, variables = "exp_contacted", conf_level = .9)
+r_squared <- r2(fit_2sls)['r2']
+n_contacted <- sum(clean_df$exp_contacted)
+n_not_contacted <- sum(clean_df$exp_contacted == 0)
+  
+ame_contacted_clean <- ame_contacted %>%
+  tidy() %>%
+  transmute(regression_type = "2SLS",
+            condition = "contacted - not contacted",
+            n = NA,
+            predicted_prob = estimate,
+            se = std.error,
+            ci_low_90 = conf.low,
+            ci_high_90 = conf.high,
+            p_value = p.value,
+            adj_rsq = r_squared)
+
+preds_clean <- preds %>%
+  tidy() %>%
+  transmute(regression_type = "2SLS",
+            condition = if_else(exp_contacted == 1, "contacted", "not contacted"),
+            n = if_else(exp_contacted == 1, n_contacted, n_not_contacted),
+            predicted_prob = estimate,
+            se = std.error,
+            ci_low_90 = conf.low,
+            ci_high_90 = conf.high,
+            p_value = p.value,
+            adj_rsq = r_squared)
+
+all_regression_results <- regression_results %>%
+  filter(regression_type == "OLS") %>%
+  bind_rows(ame_contacted_clean) %>%
+  bind_rows(preds_clean)
+
+kable(all_regression_results)
+```
+
+The F test is significant and above 10, which is good. That means that the IV setup is reasonable; The instrument strongly predicts contact and is not a weak instrument. Being contacted does not significantly increase turnout, though the best estimate is that it increases turnout by 1.4pp.
+
+## Save Regression Results
+
+```{r}
+s3write_using(x = all_regression_results, 
+              FUN = write_csv, 
+              object = "p080_moveon_impact_analysis/regression_results.csv", 
+              bucket = "tmc-research-projects")
+```

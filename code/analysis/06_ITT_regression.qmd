@@ -60,9 +60,8 @@ model_df %>%
 ## Run Model
 
 ```{r run_model}
-itt_model <- glm(formula = voted_24 ~ .,
-                 data = model_df,
-                 family = "binomial")
+itt_model <- lm(formula = voted_24 ~ .,
+                 data = model_df)
 
 tidy(itt_model) %>% kable()
 ```
@@ -84,7 +83,7 @@ preds <- avg_predictions(itt_model, variables = "treat", conf_level = .9)
 # clean up all results into one pretty table
 itt_regression_results <- bind_rows(ame_treat, preds) %>%
   as_tibble() %>%
-  transmute(regression_type = "logistic", 
+  transmute(regression_type = "OLS", 
          condition = case_when(treat == 0 ~ "control",
                                treat == 1 ~ "treatment",
                                TRUE ~ "treatment - control"),
