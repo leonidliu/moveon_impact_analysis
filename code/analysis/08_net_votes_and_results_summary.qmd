@@ -73,18 +73,18 @@ This portion of the analysis takes the number of people contacted using various 
 
 ```{r n_sizes}
 postcard_n <- full_clean_df %>%
-  filter(postcard_contacted == 1,
-         any_phone_contacted == 0) %>%
+  filter(postcard_attempted == 1,
+         any_phone_attempted == 0) %>%
   nrow()
 
 phone_n <- full_clean_df %>%
-  filter(postcard_contacted == 0,
-         any_phone_contacted == 1) %>%
+  filter(postcard_attempted == 0,
+         any_phone_attempted == 1) %>%
   nrow()
 
 both_n <- full_clean_df %>%
-  filter(postcard_contacted == 1,
-         any_phone_contacted == 1) %>%
+  filter(postcard_attempted == 1,
+         any_phone_attempted== 1) %>%
   nrow()
 ```
 
@@ -92,7 +92,7 @@ both_n <- full_clean_df %>%
 
 ```{r base_ai_table}
 ai_estimates <- tribble(
-      ~Mode,      ~`N Contacted`, ~Scenario, ~`Tot. Effect`,
+      ~Mode,      ~`N Attempted`, ~Scenario, ~`Tot. Effect`,
       "Postcard", postcard_n,     "Low",     0.1,
       "Postcard", postcard_n,     "Medium",  0.3,
       "Postcard", postcard_n,     "High",    1.0,
@@ -102,7 +102,7 @@ ai_estimates <- tribble(
       "Both",     both_n,         "Low",     0.1,
       "Both",     both_n,         "Medium",  0.5,
       "Both",     both_n,         "High",    2.0) %>%
-  mutate(`Net Votes`  = `Tot. Effect` * `N Contacted` / 100,
+  mutate(`Net Votes`  = `Tot. Effect` * `N Attempted` / 100,
          `Net Dem Votes` = `Net Votes` * adjustment_factor)
 ```
 
@@ -112,9 +112,10 @@ ai_estimates <- tribble(
 total_rows <- ai_estimates %>%
   group_by(Scenario) %>%
   summarise(Mode = "Total",
+            `Tot. Effect` = weighted.mean(x = `Tot. Effect`, w = `N Attempted`),
             `Net Votes` = sum(`Net Votes`),
             `Net Dem Votes` = sum(`Net Dem Votes`),
-            `N Contacted` = sum(`N Contacted`))
+            `N Attempted` = sum(`N Attempted`))
 
 ai_estimates <- ai_estimates %>%
   bind_rows(total_rows)
@@ -126,6 +127,10 @@ ai_estimates <- ai_estimates %>%
 ai_estimates %>%
   mutate(`Net Votes` = round(`Net Votes`),
          `Net Dem Votes` = round(`Net Dem Votes`)) %>%
+  mutate(Mode = factor(Mode, levels = c("Phone", "Postcard", "Both", "Total"))) %>%
+  mutate(Scenario = factor(Scenario, levels = c("Low", "Medium", "High"))) %>%
+  mutate(`Tot. Effect` = round(`Tot. Effect`, digits = 2)) %>%
+  arrange(Mode, Scenario) %>%
   kable(format.args = list(big.mark = ","))
 ```
 
