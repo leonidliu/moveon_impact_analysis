@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Andy Zack">
-<meta name="dcterms.date" content="2025-08-26">
+<meta name="dcterms.date" content="2025-09-09">
 
 <title>5 Descriptive Stats</title>
 <style>
@@ -3106,7 +3106,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 26, 2025</p>
+      <p class="date">September 9, 2025</p>
     </div>
   </div>
   
@@ -3426,8 +3426,8 @@ vertical-align: -.125em;
 <div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>full_clean_df <span class="sc">%&gt;%</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">treat_outreach =</span> <span class="fu">case_when</span>(treat <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">&quot;Control&quot;</span>,</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                                    postcard_attempted <span class="sc">+</span> phone_attempted <span class="sc">==</span> <span class="dv">2</span> <span class="sc">~</span> <span class="st">&quot;Phone + Postcard&quot;</span>,</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                                    phone_attempted <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">&quot;Phone Only&quot;</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                                    postcard_attempted <span class="sc">+</span> any_phone_attempted <span class="sc">==</span> <span class="dv">2</span> <span class="sc">~</span> <span class="st">&quot;Phone + Postcard&quot;</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                                    any_phone_attempted <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">&quot;Phone Only&quot;</span>,</span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                                    postcard_attempted <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">&quot;Postcard Only&quot;</span>,</span>
 <span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                                    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">&quot;Not Attempted&quot;</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">treat_outreach =</span> <span class="fu">factor</span>(treat_outreach, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;Control&quot;</span>,</span>
@@ -3463,26 +3463,26 @@ vertical-align: -.125em;
 <tr class="even">
 <td style="text-align: left;">Treatment</td>
 <td style="text-align: left;">Not Attempted</td>
-<td style="text-align: right;">3,678,519</td>
-<td style="text-align: left;">79.8%</td>
+<td style="text-align: right;">2,522,673</td>
+<td style="text-align: left;">54.7%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Treatment</td>
 <td style="text-align: left;">Phone Only</td>
-<td style="text-align: right;">398,434</td>
-<td style="text-align: left;">8.6%</td>
+<td style="text-align: right;">1,554,280</td>
+<td style="text-align: left;">33.7%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Treatment</td>
 <td style="text-align: left;">Postcard Only</td>
-<td style="text-align: right;">16,125</td>
-<td style="text-align: left;">0.3%</td>
+<td style="text-align: right;">5,615</td>
+<td style="text-align: left;">0.1%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Treatment</td>
 <td style="text-align: left;">Phone + Postcard</td>
-<td style="text-align: right;">59,837</td>
-<td style="text-align: left;">1.3%</td>
+<td style="text-align: right;">70,347</td>
+<td style="text-align: left;">1.5%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Total</td>
@@ -3957,6 +3957,61 @@ vertical-align: -.125em;
 </div>
 </div>
 </section>
+</section>
+<section id="compare-attempt-and-contacts-in-audiences" class="level2">
+<h2 class="anchored" data-anchor-id="compare-attempt-and-contacts-in-audiences">Compare Attempt and Contacts in Audiences</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">Audience =</span> <span class="fu">c</span>(<span class="st">&quot;Full Audience&quot;</span>, <span class="st">&quot;800K subset&quot;</span>),</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Treatment Size</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">sum</span>(full_clean_df<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>),</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>                            <span class="fu">sum</span>(clean_df<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>)),</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>       <span class="at">Attempts =</span> <span class="fu">c</span>(<span class="fu">sum</span>(full_clean_df<span class="sc">$</span>exp_attempted[full_clean_df<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>]),</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">sum</span>(clean_df<span class="sc">$</span>exp_attempted[clean_df<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>])),</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">Contacts =</span> <span class="fu">c</span>(<span class="fu">sum</span>(full_clean_df<span class="sc">$</span>exp_contacted[full_clean_df<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>]),</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">sum</span>(clean_df<span class="sc">$</span>exp_contacted[clean_df<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>])))<span class="sc">%&gt;%</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">% Attempted</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">percent</span>(Attempts <span class="sc">/</span> <span class="st">`</span><span class="at">Treatment Size</span><span class="st">`</span>),</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">% Contacted</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">percent</span>(Contacts <span class="sc">/</span> <span class="st">`</span><span class="at">Treatment Size</span><span class="st">`</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">format.args =</span> <span class="fu">list</span>(<span class="at">big.mark =</span> <span class="st">&quot;,&quot;</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 20%">
+<col style="width: 13%">
+<col style="width: 12%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Audience</th>
+<th style="text-align: right;">Treatment Size</th>
+<th style="text-align: right;">Attempts</th>
+<th style="text-align: right;">Contacts</th>
+<th style="text-align: left;">% Attempted</th>
+<th style="text-align: left;">% Contacted</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Full Audience</td>
+<td style="text-align: right;">4,152,915</td>
+<td style="text-align: right;">1,630,242</td>
+<td style="text-align: right;">116,570</td>
+<td style="text-align: left;">39%</td>
+<td style="text-align: left;">2.8%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">800K subset</td>
+<td style="text-align: right;">743,450</td>
+<td style="text-align: right;">585,732</td>
+<td style="text-align: right;">77,703</td>
+<td style="text-align: left;">79%</td>
+<td style="text-align: left;">10.5%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </section>
 
 </main>

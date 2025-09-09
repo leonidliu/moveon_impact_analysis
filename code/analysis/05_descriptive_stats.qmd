@@ -114,8 +114,8 @@ full_clean_df %>%
 ```{r treatment_group_sizes}
 full_clean_df %>%
   mutate(treat_outreach = case_when(treat == 0 ~ "Control",
-                                    postcard_attempted + phone_attempted == 2 ~ "Phone + Postcard",
-                                    phone_attempted == 1 ~ "Phone Only",
+                                    postcard_attempted + any_phone_attempted == 2 ~ "Phone + Postcard",
+                                    any_phone_attempted == 1 ~ "Phone Only",
                                     postcard_attempted == 1 ~ "Postcard Only",
                                     TRUE ~ "Not Attempted")) %>%
   mutate(treat_outreach = factor(treat_outreach, levels = c("Control",
@@ -271,4 +271,19 @@ clean_df %>%
 
 ```{r}
 sum(clean_df$postcard_attempted)
+```
+
+## Compare Attempt and Contacts in Audiences
+
+```{r total_rates}
+tibble(Audience = c("Full Audience", "800K subset"),
+       `Treatment Size` = c(sum(full_clean_df$treat == 1),
+                            sum(clean_df$treat == 1)),
+       Attempts = c(sum(full_clean_df$exp_attempted[full_clean_df$treat == 1]),
+                    sum(clean_df$exp_attempted[clean_df$treat == 1])),
+       Contacts = c(sum(full_clean_df$exp_contacted[full_clean_df$treat == 1]),
+                    sum(clean_df$exp_contacted[clean_df$treat == 1])))%>%
+  mutate(`% Attempted` = percent(Attempts / `Treatment Size`),
+         `% Contacted` = percent(Contacts / `Treatment Size`)) %>%
+  kable(format.args = list(big.mark = ","))
 ```
