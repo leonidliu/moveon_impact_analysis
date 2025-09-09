@@ -283,7 +283,7 @@ tibble(Audience = c("Full Audience", "800K subset"),
                     sum(clean_df$exp_attempted[clean_df$treat == 1])),
        Contacts = c(sum(full_clean_df$exp_contacted[full_clean_df$treat == 1]),
                     sum(clean_df$exp_contacted[clean_df$treat == 1])))%>%
-  mutate(`% Attempted` = percent(Attempts / `Treatment Size`),
-         `% Contacted` = percent(Contacts / `Treatment Size`)) %>%
+  mutate(`% Attempted` = percent(Attempts / `Treatment Size`, accuracy = .01),
+         `% Contacted` = percent(Contacts / `Treatment Size`, accuracy = .01)) %>%
   kable(format.args = list(big.mark = ","))
 ```

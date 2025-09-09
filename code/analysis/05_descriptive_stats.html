@@ -3968,8 +3968,8 @@ vertical-align: -.125em;
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">sum</span>(clean_df<span class="sc">$</span>exp_attempted[clean_df<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>])),</span>
 <span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">Contacts =</span> <span class="fu">c</span>(<span class="fu">sum</span>(full_clean_df<span class="sc">$</span>exp_contacted[full_clean_df<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>]),</span>
 <span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">sum</span>(clean_df<span class="sc">$</span>exp_contacted[clean_df<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>])))<span class="sc">%&gt;%</span></span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">% Attempted</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">percent</span>(Attempts <span class="sc">/</span> <span class="st">`</span><span class="at">Treatment Size</span><span class="st">`</span>),</span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">% Contacted</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">percent</span>(Contacts <span class="sc">/</span> <span class="st">`</span><span class="at">Treatment Size</span><span class="st">`</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">% Attempted</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">percent</span>(Attempts <span class="sc">/</span> <span class="st">`</span><span class="at">Treatment Size</span><span class="st">`</span>, <span class="at">accuracy =</span> .<span class="dv">01</span>),</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">% Contacted</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">percent</span>(Contacts <span class="sc">/</span> <span class="st">`</span><span class="at">Treatment Size</span><span class="st">`</span>, <span class="at">accuracy =</span> .<span class="dv">01</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">format.args =</span> <span class="fu">list</span>(<span class="at">big.mark =</span> <span class="st">&quot;,&quot;</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3997,16 +3997,16 @@ vertical-align: -.125em;
 <td style="text-align: right;">4,152,915</td>
 <td style="text-align: right;">1,630,242</td>
 <td style="text-align: right;">116,570</td>
-<td style="text-align: left;">39%</td>
-<td style="text-align: left;">2.8%</td>
+<td style="text-align: left;">39.26%</td>
+<td style="text-align: left;">2.81%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">800K subset</td>
 <td style="text-align: right;">743,450</td>
 <td style="text-align: right;">585,732</td>
 <td style="text-align: right;">77,703</td>
-<td style="text-align: left;">79%</td>
-<td style="text-align: left;">10.5%</td>
+<td style="text-align: left;">78.79%</td>
+<td style="text-align: left;">10.45%</td>
 </tr>
 </tbody>
 </table>
