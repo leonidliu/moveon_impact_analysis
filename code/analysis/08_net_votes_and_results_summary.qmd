@@ -63,6 +63,10 @@ mean_partisanship <- full_clean_df %>%
   mean()
 
 adjustment_factor <- ((mean_partisanship - 50) * 2) / 100
+
+tibble(`Mean Partisanship` = mean_partisanship,
+       `Adjustment Factor` = adjustment_factor) %>%
+  kable()
 ```
 
 ## Estimating Effects Using AI Meta-Analysis

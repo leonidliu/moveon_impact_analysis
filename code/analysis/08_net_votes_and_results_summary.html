@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Andy Zack">
-<meta name="dcterms.date" content="2025-09-09">
+<meta name="dcterms.date" content="2025-09-16">
 
 <title>08 Net Votes and Results Summary</title>
 <style>
@@ -3106,7 +3106,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 9, 2025</p>
+      <p class="date">September 16, 2025</p>
     </div>
   </div>
   
@@ -3212,7 +3212,27 @@ vertical-align: -.125em;
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(ts_tsmart_partisan_score) <span class="sc">%&gt;%</span></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean</span>()</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>adjustment_factor <span class="ot">&lt;-</span> ((mean_partisanship <span class="sc">-</span> <span class="dv">50</span>) <span class="sc">*</span> <span class="dv">2</span>) <span class="sc">/</span> <span class="dv">100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>adjustment_factor <span class="ot">&lt;-</span> ((mean_partisanship <span class="sc">-</span> <span class="dv">50</span>) <span class="sc">*</span> <span class="dv">2</span>) <span class="sc">/</span> <span class="dv">100</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="st">`</span><span class="at">Mean Partisanship</span><span class="st">`</span> <span class="ot">=</span> mean_partisanship,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Adjustment Factor</span><span class="st">`</span> <span class="ot">=</span> adjustment_factor) <span class="sc">%&gt;%</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">Mean Partisanship</th>
+<th style="text-align: right;">Adjustment Factor</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">93.08518</td>
+<td style="text-align: right;">0.8617036</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 </section>
 <section id="estimating-effects-using-ai-meta-analysis" class="level2">
