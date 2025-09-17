@@ -35,6 +35,11 @@ clean_df <- s3read_using(
   FUN = read_rds,
   bucket = bucket,
   object = "p080_moveon_impact_analysis/clean_df.rds")
+
+full_clean_df <- s3read_using(
+  FUN = read_rds,
+  bucket = bucket,
+  object = "p080_moveon_impact_analysis/full_clean_df.rds")
 ```
 
 ## Load ITT regressions results
@@ -48,7 +53,7 @@ regression_results <- s3read_using(
 )
 ```
 
-## Run 2SLS Regression
+## Run 2SLS Regression on 800k Subset
 
 ```{r run_regression}
 fit_2sls <- feols(
@@ -72,7 +77,7 @@ fit_2sls <- feols(
   data = clean_df)
 ```
 
-## Print Regression Results
+## Print 800k Subset Regression Results
 
 ```{r print_regression_results}
 tidy(fit_2sls) %>%
@@ -109,16 +114,85 @@ preds_clean <- preds %>%
             ci_high_90 = conf.high,
             p_value = p.value,
             adj_rsq = r_squared)
-
-all_regression_results <- regression_results %>%
-  filter(regression_type == "OLS") %>%
-  bind_rows(ame_contacted_clean) %>%
-  bind_rows(preds_clean)
-
-kable(all_regression_results)
 ```
 
 The F test is significant and above 10, which is good. That means that the IV setup is reasonable; The instrument strongly predicts contact and is not a weak instrument. Being contacted does not significantly increase turnout, though the best estimate is that it increases turnout by 1.4pp.
+
+## Run 2SLS Regression on Full Dataset
+
+```{r}
+full_fit_2sls <- feols(
+  voted_24 ~ 
+    gender +
+    age +
+    target_geography_state +
+    voted_22 +
+    voted_20 +
+    voted_p22 +
+    voted_p20 +
+    race +
+    ts_tsmart_presidential_general_turnout_score +
+    ts_tsmart_presidential_general_turnout_score_sq +
+    ts_tsmart_partisan_score +
+    ts_tsmart_partisan_score_sq +
+    urbanicity +
+    ts_tsmart_college_graduate_score |  
+    # IV part: 
+    exp_contacted ~ treat,
+  data = full_clean_df)
+```
+
+## Print Full Dataset Regression Results
+
+```{r}
+tidy(full_fit_2sls) %>%
+  kable()
+
+fitstat(full_fit_2sls, "ivf")
+
+full_ame_contacted <- avg_slopes(full_fit_2sls, variables = "exp_contacted", conf_level = .9)
+full_preds <- avg_predictions(full_fit_2sls, variables = "exp_contacted", conf_level = .9)
+full_r_squared <- r2(full_fit_2sls)['r2']
+full_n_contacted <- sum(full_clean_df$exp_contacted)
+full_n_not_contacted <- sum(full_clean_df$exp_contacted == 0)
+  
+full_ame_contacted_clean <- full_ame_contacted %>%
+  tidy() %>%
+  transmute(regression_type = "2SLS full",
+            condition = "contacted - not contacted",
+            n = NA,
+            predicted_prob = estimate,
+            se = std.error,
+            ci_low_90 = conf.low,
+            ci_high_90 = conf.high,
+            p_value = p.value,
+            adj_rsq = full_r_squared)
+
+full_preds_clean <- full_preds %>%
+  tidy() %>%
+  transmute(regression_type = "2SLS full",
+            condition = if_else(exp_contacted == 1, "contacted", "not contacted"),
+            n = if_else(exp_contacted == 1, full_n_contacted, full_n_not_contacted),
+            predicted_prob = estimate,
+            se = std.error,
+            ci_low_90 = conf.low,
+            ci_high_90 = conf.high,
+            p_value = p.value,
+            adj_rsq = r_squared)
+```
+
+## Combine Results into 1 Dataset
+
+```{r}
+all_regression_results <- regression_results %>%
+  filter(regression_type == "OLS") %>%
+  bind_rows(ame_contacted_clean) %>%
+  bind_rows(preds_clean) %>%
+  bind_rows(full_ame_contacted_clean) %>%
+  bind_rows(full_preds_clean)
+
+kable(all_regression_results)
+```
 
 ## Save Regression Results
 

@@ -29,7 +29,7 @@ bucket = "tmc-research-projects"
 
 Regression results is the summary from the OLS and 2SLS regressions. The other file is the full dataset that is just used for calculating things like n sizes and mean partisanship scores here.
 
-```{r}
+```{r load_data}
 #| message: false
 regression_results <- s3read_using(
   FUN = read_csv,
@@ -47,7 +47,7 @@ full_clean_df <- s3read_using(
 
 We could do a different adjustment factor if the people contacted by different modes had different mean partisanship scores, but they are so similar that I am just calculating one to use for all contact modes. The following table shows how little they vary by contact mode. Note that the people who are not contacted have lower partisanship scores, but that doesn't really matter for the purpose of this adjustment
 
-```{r}
+```{r avg_partisan_scores}
 full_clean_df %>%
   group_by(any_phone_contacted, postcard_contacted) %>%
   summarise(mean_partisanship = round(mean(ts_tsmart_partisan_score),2),
@@ -56,7 +56,7 @@ full_clean_df %>%
   kable()
 ```
 
-```{r}
+```{r get_adjustment_factor}
 mean_partisanship <- full_clean_df %>%
   filter(exp_contacted == 1) %>%
   pull(ts_tsmart_partisan_score) %>%
@@ -112,7 +112,7 @@ ai_estimates <- tribble(
 
 #### Add Total Rows
 
-```{r}
+```{r add_ai_total_row}
 total_rows <- ai_estimates %>%
   group_by(Scenario) %>%
   summarise(Mode = "Total",
@@ -127,7 +127,7 @@ ai_estimates <- ai_estimates %>%
 
 #### Print Final Results
 
-```{r}
+```{r print_ai_estimates}
 ai_estimates %>%
   mutate(`Net Votes` = round(`Net Votes`),
          `Net Dem Votes` = round(`Net Dem Votes`)) %>%
@@ -140,11 +140,11 @@ ai_estimates %>%
 
 ## Overall Results Table
 
-This was not in the initial analysis plan but it might be nice to have the results from all three analyses (OLS, 2SLS, and AI) in one table.
+This was not in the initial analysis plan but it might be nice to have the results from all four analyses (OLS, 2SLS on the subset, 2SLS on the full dataset, and AI) in one table.
 
 #### Pull OLS Results
 
-```{r}
+```{r ols_effects}
 ols_effect_size <- regression_results %>% 
   filter(regression_type== "OLS",
          condition == "treatment - control") %>%
@@ -163,9 +163,9 @@ ols_effect_size_high <- regression_results %>%
 treatment_n <- sum(full_clean_df$treat==1)
 ```
 
-#### Pull 2SLS Results
+#### Pull 2SLS Results (subset)
 
-```{r}
+```{r tsls_subset_effects}
 twosls_effect_size <- regression_results %>% 
   filter(regression_type== "2SLS",
          condition == "contacted - not contacted") %>%
@@ -184,11 +184,33 @@ twosls_effect_size_high <- regression_results %>%
 num_contacted <- sum(full_clean_df$exp_contacted)
 ```
 
-#### Get Net Dem. Votes for All Three Analyses
+#### Pull 2SLS Results (full)
 
-```{r}
+```{r tsls_full_effects}
+full_twosls_effect_size <- regression_results %>% 
+  filter(regression_type== "2SLS full",
+         condition == "contacted - not contacted") %>%
+  pull(predicted_prob)
+
+full_twosls_effect_size_low <- regression_results %>% 
+  filter(regression_type== "2SLS full",
+         condition == "contacted - not contacted") %>%
+  pull(ci_low_90)
+
+full_twosls_effect_size_high <- regression_results %>% 
+  filter(regression_type== "2SLS full",
+         condition == "contacted - not contacted") %>%
+  pull(ci_high_90)
+
+num_contacted <- sum(full_clean_df$exp_contacted)
+```
+
+#### Get Net Dem. Votes for All Four Analyses
+
+```{r net_dem_votes}
 #  Net Dem Votes
 twosls_net_dem_votes <- num_contacted * twosls_effect_size * adjustment_factor
+full_twosls_net_dem_votes <- num_contacted * full_twosls_effect_size * adjustment_factor
 ols_net_dem_votes <- treatment_n * ols_effect_size * adjustment_factor
 ai_net_dem_votes <- ai_estimates %>%
   filter(Mode == "Total", Scenario == "Medium") %>%
@@ -196,6 +218,7 @@ ai_net_dem_votes <- ai_estimates %>%
 
 # Low 90 CI Net Dem Votes
 twosls_low_net_dem_votes <- num_contacted * twosls_effect_size_low * adjustment_factor
+full_twosls_low_net_dem_votes <- num_contacted * full_twosls_effect_size_low * adjustment_factor
 ols_low_net_dem_votes <- treatment_n * ols_effect_size_low * adjustment_factor
 ai_low_net_dem_votes <- ai_estimates %>%
   filter(Mode == "Total", Scenario == "Low") %>%
@@ -203,6 +226,7 @@ ai_low_net_dem_votes <- ai_estimates %>%
 
 # 2sls High 90 CI Net Dem Votes
 twosls_high_net_dem_votes <- num_contacted * twosls_effect_size_high * adjustment_factor
+full_twosls_high_net_dem_votes <- num_contacted * full_twosls_effect_size_high * adjustment_factor
 ols_high_net_dem_votes <- treatment_n * ols_effect_size_high * adjustment_factor
 ai_high_net_dem_votes <- ai_estimates %>%
   filter(Mode == "Total", Scenario == "High") %>%
@@ -213,14 +237,14 @@ ai_high_net_dem_votes <- ai_estimates %>%
 
 The effect sizes are not directly comparable because the OLS is an ITT effect, or the effect on people being assigned to the treatment universe. The 2SLS is the effect on the people that were actually contacted. For now I am leaving the AI section blank for the effect sizes, because I'm not sure what the best way to do that is, or if we even want those columns in this table. That can be filled in later if necessary.
 
-```{r}
+```{r print_table}
 tibble(
-  Analysis = c("OLS", "2SLS", "Meta-Analysis"),
-  Effect = round(c(ols_effect_size, twosls_effect_size, NA), 3),
-  `Low Effect` = round(c(ols_effect_size_low, twosls_effect_size_low, NA), 3),
-  `High Effect` = round(c(ols_effect_size_high, twosls_effect_size_high, NA), 3),
-  `Net Dem Votes` = round(c(ols_net_dem_votes, twosls_net_dem_votes, ai_net_dem_votes)),
-  `Low Net Dem Votes` = round(c(ols_low_net_dem_votes, twosls_low_net_dem_votes, ai_low_net_dem_votes)),
-  `High Net Dem Votes` = round(c(ols_high_net_dem_votes, twosls_high_net_dem_votes, ai_high_net_dem_votes))) %>%
+  Analysis = c("OLS", "2SLS (subset)", "2SLS (full)", "Meta-Analysis"),
+  Effect = round(c(ols_effect_size, twosls_effect_size, full_twosls_effect_size, NA), 3),
+  `Low Effect` = round(c(ols_effect_size_low, twosls_effect_size_low, full_twosls_effect_size_low, NA), 3),
+  `High Effect` = round(c(ols_effect_size_high, twosls_effect_size_high, full_twosls_effect_size_high, NA), 3),
+  `Net Dem Votes` = round(c(ols_net_dem_votes, twosls_net_dem_votes, full_twosls_net_dem_votes, ai_net_dem_votes)),
+  `Low Net Dem Votes` = round(c(ols_low_net_dem_votes, twosls_low_net_dem_votes, full_twosls_low_net_dem_votes, ai_low_net_dem_votes)),
+  `High Net Dem Votes` = round(c(ols_high_net_dem_votes, twosls_high_net_dem_votes, full_twosls_high_net_dem_votes, ai_high_net_dem_votes))) %>%
   kable(format.args = list(big.mark = ","))
 ```

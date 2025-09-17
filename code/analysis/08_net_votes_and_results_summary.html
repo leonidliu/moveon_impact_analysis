@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Andy Zack">
-<meta name="dcterms.date" content="2025-09-16">
+<meta name="dcterms.date" content="2025-09-17">
 
 <title>08 Net Votes and Results Summary</title>
 <style>
@@ -3106,7 +3106,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 16, 2025</p>
+      <p class="date">September 17, 2025</p>
     </div>
   </div>
   
@@ -3426,7 +3426,7 @@ vertical-align: -.125em;
 </section>
 <section id="overall-results-table" class="level2">
 <h2 class="anchored" data-anchor-id="overall-results-table">Overall Results Table</h2>
-<p>This was not in the initial analysis plan but it might be nice to have the results from all three analyses (OLS, 2SLS, and AI) in one table.</p>
+<p>This was not in the initial analysis plan but it might be nice to have the results from all four analyses (OLS, 2SLS on the subset, 2SLS on the full dataset, and AI) in one table.</p>
 <section id="pull-ols-results" class="level4">
 <h4 class="anchored" data-anchor-id="pull-ols-results">Pull OLS Results</h4>
 <div class="cell">
@@ -3448,8 +3448,8 @@ vertical-align: -.125em;
 <span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>treatment_n <span class="ot">&lt;-</span> <span class="fu">sum</span>(full_clean_df<span class="sc">$</span>treat<span class="sc">==</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="pull-2sls-results" class="level4">
-<h4 class="anchored" data-anchor-id="pull-2sls-results">Pull 2SLS Results</h4>
+<section id="pull-2sls-results-subset" class="level4">
+<h4 class="anchored" data-anchor-id="pull-2sls-results-subset">Pull 2SLS Results (subset)</h4>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>twosls_effect_size <span class="ot">&lt;-</span> regression_results <span class="sc">%&gt;%</span> </span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(regression_type<span class="sc">==</span> <span class="st">&quot;2SLS&quot;</span>,</span>
@@ -3469,44 +3469,68 @@ vertical-align: -.125em;
 <span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>num_contacted <span class="ot">&lt;-</span> <span class="fu">sum</span>(full_clean_df<span class="sc">$</span>exp_contacted)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="get-net-dem.-votes-for-all-three-analyses" class="level4">
-<h4 class="anchored" data-anchor-id="get-net-dem.-votes-for-all-three-analyses">Get Net Dem. Votes for All Three Analyses</h4>
+<section id="pull-2sls-results-full" class="level4">
+<h4 class="anchored" data-anchor-id="pull-2sls-results-full">Pull 2SLS Results (full)</h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">#  Net Dem Votes</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>twosls_net_dem_votes <span class="ot">&lt;-</span> num_contacted <span class="sc">*</span> twosls_effect_size <span class="sc">*</span> adjustment_factor</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>ols_net_dem_votes <span class="ot">&lt;-</span> treatment_n <span class="sc">*</span> ols_effect_size <span class="sc">*</span> adjustment_factor</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>ai_net_dem_votes <span class="ot">&lt;-</span> ai_estimates <span class="sc">%&gt;%</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> <span class="st">&quot;Total&quot;</span>, Scenario <span class="sc">==</span> <span class="st">&quot;Medium&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">`</span><span class="at">Net Dem Votes</span><span class="st">`</span>)</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Low 90 CI Net Dem Votes</span></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>twosls_low_net_dem_votes <span class="ot">&lt;-</span> num_contacted <span class="sc">*</span> twosls_effect_size_low <span class="sc">*</span> adjustment_factor</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>ols_low_net_dem_votes <span class="ot">&lt;-</span> treatment_n <span class="sc">*</span> ols_effect_size_low <span class="sc">*</span> adjustment_factor</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>ai_low_net_dem_votes <span class="ot">&lt;-</span> ai_estimates <span class="sc">%&gt;%</span></span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> <span class="st">&quot;Total&quot;</span>, Scenario <span class="sc">==</span> <span class="st">&quot;Low&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">`</span><span class="at">Net Dem Votes</span><span class="st">`</span>)</span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 2sls High 90 CI Net Dem Votes</span></span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>twosls_high_net_dem_votes <span class="ot">&lt;-</span> num_contacted <span class="sc">*</span> twosls_effect_size_high <span class="sc">*</span> adjustment_factor</span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>ols_high_net_dem_votes <span class="ot">&lt;-</span> treatment_n <span class="sc">*</span> ols_effect_size_high <span class="sc">*</span> adjustment_factor</span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>ai_high_net_dem_votes <span class="ot">&lt;-</span> ai_estimates <span class="sc">%&gt;%</span></span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> <span class="st">&quot;Total&quot;</span>, Scenario <span class="sc">==</span> <span class="st">&quot;High&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">`</span><span class="at">Net Dem Votes</span><span class="st">`</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>full_twosls_effect_size <span class="ot">&lt;-</span> regression_results <span class="sc">%&gt;%</span> </span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(regression_type<span class="sc">==</span> <span class="st">&quot;2SLS full&quot;</span>,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>         condition <span class="sc">==</span> <span class="st">&quot;contacted - not contacted&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(predicted_prob)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>full_twosls_effect_size_low <span class="ot">&lt;-</span> regression_results <span class="sc">%&gt;%</span> </span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(regression_type<span class="sc">==</span> <span class="st">&quot;2SLS full&quot;</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>         condition <span class="sc">==</span> <span class="st">&quot;contacted - not contacted&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(ci_low_90)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>full_twosls_effect_size_high <span class="ot">&lt;-</span> regression_results <span class="sc">%&gt;%</span> </span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(regression_type<span class="sc">==</span> <span class="st">&quot;2SLS full&quot;</span>,</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>         condition <span class="sc">==</span> <span class="st">&quot;contacted - not contacted&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(ci_high_90)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>num_contacted <span class="ot">&lt;-</span> <span class="fu">sum</span>(full_clean_df<span class="sc">$</span>exp_contacted)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="get-net-dem.-votes-for-all-four-analyses" class="level4">
+<h4 class="anchored" data-anchor-id="get-net-dem.-votes-for-all-four-analyses">Get Net Dem. Votes for All Four Analyses</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">#  Net Dem Votes</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>twosls_net_dem_votes <span class="ot">&lt;-</span> num_contacted <span class="sc">*</span> twosls_effect_size <span class="sc">*</span> adjustment_factor</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>full_twosls_net_dem_votes <span class="ot">&lt;-</span> num_contacted <span class="sc">*</span> full_twosls_effect_size <span class="sc">*</span> adjustment_factor</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>ols_net_dem_votes <span class="ot">&lt;-</span> treatment_n <span class="sc">*</span> ols_effect_size <span class="sc">*</span> adjustment_factor</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>ai_net_dem_votes <span class="ot">&lt;-</span> ai_estimates <span class="sc">%&gt;%</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> <span class="st">&quot;Total&quot;</span>, Scenario <span class="sc">==</span> <span class="st">&quot;Medium&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">`</span><span class="at">Net Dem Votes</span><span class="st">`</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Low 90 CI Net Dem Votes</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>twosls_low_net_dem_votes <span class="ot">&lt;-</span> num_contacted <span class="sc">*</span> twosls_effect_size_low <span class="sc">*</span> adjustment_factor</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>full_twosls_low_net_dem_votes <span class="ot">&lt;-</span> num_contacted <span class="sc">*</span> full_twosls_effect_size_low <span class="sc">*</span> adjustment_factor</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>ols_low_net_dem_votes <span class="ot">&lt;-</span> treatment_n <span class="sc">*</span> ols_effect_size_low <span class="sc">*</span> adjustment_factor</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>ai_low_net_dem_votes <span class="ot">&lt;-</span> ai_estimates <span class="sc">%&gt;%</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> <span class="st">&quot;Total&quot;</span>, Scenario <span class="sc">==</span> <span class="st">&quot;Low&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">`</span><span class="at">Net Dem Votes</span><span class="st">`</span>)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 2sls High 90 CI Net Dem Votes</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>twosls_high_net_dem_votes <span class="ot">&lt;-</span> num_contacted <span class="sc">*</span> twosls_effect_size_high <span class="sc">*</span> adjustment_factor</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>full_twosls_high_net_dem_votes <span class="ot">&lt;-</span> num_contacted <span class="sc">*</span> full_twosls_effect_size_high <span class="sc">*</span> adjustment_factor</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>ols_high_net_dem_votes <span class="ot">&lt;-</span> treatment_n <span class="sc">*</span> ols_effect_size_high <span class="sc">*</span> adjustment_factor</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>ai_high_net_dem_votes <span class="ot">&lt;-</span> ai_estimates <span class="sc">%&gt;%</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> <span class="st">&quot;Total&quot;</span>, Scenario <span class="sc">==</span> <span class="st">&quot;High&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">`</span><span class="at">Net Dem Votes</span><span class="st">`</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="print-final-table" class="level4">
 <h4 class="anchored" data-anchor-id="print-final-table">Print Final Table</h4>
 <p>The effect sizes are not directly comparable because the OLS is an ITT effect, or the effect on people being assigned to the treatment universe. The 2SLS is the effect on the people that were actually contacted. For now I am leaving the AI section blank for the effect sizes, because I’m not sure what the best way to do that is, or if we even want those columns in this table. That can be filled in later if necessary.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Analysis =</span> <span class="fu">c</span>(<span class="st">&quot;OLS&quot;</span>, <span class="st">&quot;2SLS&quot;</span>, <span class="st">&quot;Meta-Analysis&quot;</span>),</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Effect =</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_effect_size, twosls_effect_size, <span class="cn">NA</span>), <span class="dv">3</span>),</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Low Effect</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_effect_size_low, twosls_effect_size_low, <span class="cn">NA</span>), <span class="dv">3</span>),</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">High Effect</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_effect_size_high, twosls_effect_size_high, <span class="cn">NA</span>), <span class="dv">3</span>),</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Net Dem Votes</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_net_dem_votes, twosls_net_dem_votes, ai_net_dem_votes)),</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Low Net Dem Votes</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_low_net_dem_votes, twosls_low_net_dem_votes, ai_low_net_dem_votes)),</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">High Net Dem Votes</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_high_net_dem_votes, twosls_high_net_dem_votes, ai_high_net_dem_votes))) <span class="sc">%&gt;%</span></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">format.args =</span> <span class="fu">list</span>(<span class="at">big.mark =</span> <span class="st">&quot;,&quot;</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Analysis =</span> <span class="fu">c</span>(<span class="st">&quot;OLS&quot;</span>, <span class="st">&quot;2SLS (subset)&quot;</span>, <span class="st">&quot;2SLS (full)&quot;</span>, <span class="st">&quot;Meta-Analysis&quot;</span>),</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Effect =</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_effect_size, twosls_effect_size, full_twosls_effect_size, <span class="cn">NA</span>), <span class="dv">3</span>),</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Low Effect</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_effect_size_low, twosls_effect_size_low, full_twosls_effect_size_low, <span class="cn">NA</span>), <span class="dv">3</span>),</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">High Effect</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_effect_size_high, twosls_effect_size_high, full_twosls_effect_size_high, <span class="cn">NA</span>), <span class="dv">3</span>),</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Net Dem Votes</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_net_dem_votes, twosls_net_dem_votes, full_twosls_net_dem_votes, ai_net_dem_votes)),</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Low Net Dem Votes</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_low_net_dem_votes, twosls_low_net_dem_votes, full_twosls_low_net_dem_votes, ai_low_net_dem_votes)),</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">High Net Dem Votes</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">c</span>(ols_high_net_dem_votes, twosls_high_net_dem_votes, full_twosls_high_net_dem_votes, ai_high_net_dem_votes))) <span class="sc">%&gt;%</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">format.args =</span> <span class="fu">list</span>(<span class="at">big.mark =</span> <span class="st">&quot;,&quot;</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
@@ -3540,7 +3564,7 @@ vertical-align: -.125em;
 <td style="text-align: right;">15,481</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2SLS</td>
+<td style="text-align: left;">2SLS (subset)</td>
 <td style="text-align: right;">0.014</td>
 <td style="text-align: right;">-0.014</td>
 <td style="text-align: right;">0.041</td>
@@ -3549,6 +3573,15 @@ vertical-align: -.125em;
 <td style="text-align: right;">4,160</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">2SLS (full)</td>
+<td style="text-align: right;">-0.023</td>
+<td style="text-align: right;">-0.062</td>
+<td style="text-align: right;">0.016</td>
+<td style="text-align: right;">-2,312</td>
+<td style="text-align: right;">-6,220</td>
+<td style="text-align: right;">1,597</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;">Meta-Analysis</td>
 <td style="text-align: right;">NA</td>
 <td style="text-align: right;">NA</td>

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Andy Zack">
-<meta name="dcterms.date" content="2025-09-02">
+<meta name="dcterms.date" content="2025-09-17">
 
 <title>7 2SLS Regression</title>
 <style>
@@ -3106,7 +3106,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 2, 2025</p>
+      <p class="date">September 17, 2025</p>
     </div>
   </div>
   
@@ -3147,7 +3147,12 @@ vertical-align: -.125em;
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>clean_df <span class="ot">&lt;-</span> <span class="fu">s3read_using</span>(</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">FUN =</span> read_rds,</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">bucket =</span> bucket,</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/clean_df.rds&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/clean_df.rds&quot;</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>full_clean_df <span class="ot">&lt;-</span> <span class="fu">s3read_using</span>(</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">FUN =</span> read_rds,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">bucket =</span> bucket,</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/full_clean_df.rds&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="load-itt-regressions-results" class="level2">
@@ -3160,8 +3165,8 @@ vertical-align: -.125em;
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="run-2sls-regression" class="level2">
-<h2 class="anchored" data-anchor-id="run-2sls-regression">Run 2SLS Regression</h2>
+<section id="run-2sls-regression-on-800k-subset" class="level2">
+<h2 class="anchored" data-anchor-id="run-2sls-regression-on-800k-subset">Run 2SLS Regression on 800k Subset</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fit_2sls <span class="ot">&lt;-</span> <span class="fu">feols</span>(</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  voted_24 <span class="sc">~</span> </span>
@@ -3187,8 +3192,8 @@ vertical-align: -.125em;
 </div>
 </div>
 </section>
-<section id="print-regression-results" class="level2">
-<h2 class="anchored" data-anchor-id="print-regression-results">Print Regression Results</h2>
+<section id="print-800k-subset-regression-results" class="level2">
+<h2 class="anchored" data-anchor-id="print-800k-subset-regression-results">Print 800k Subset Regression Results</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(fit_2sls) <span class="sc">%&gt;%</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -3442,14 +3447,310 @@ vertical-align: -.125em;
 <span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>            <span class="at">ci_low_90 =</span> conf.low,</span>
 <span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>            <span class="at">ci_high_90 =</span> conf.high,</span>
 <span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>            <span class="at">p_value =</span> p.value,</span>
-<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>            <span class="at">adj_rsq =</span> r_squared)</span>
-<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>all_regression_results <span class="ot">&lt;-</span> regression_results <span class="sc">%&gt;%</span></span>
-<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(regression_type <span class="sc">==</span> <span class="st">&quot;OLS&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(ame_contacted_clean) <span class="sc">%&gt;%</span></span>
-<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(preds_clean)</span>
-<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(all_regression_results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>            <span class="at">adj_rsq =</span> r_squared)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The F test is significant and above 10, which is good. That means that the IV setup is reasonable; The instrument strongly predicts contact and is not a weak instrument. Being contacted does not significantly increase turnout, though the best estimate is that it increases turnout by 1.4pp.</p>
+</section>
+<section id="run-2sls-regression-on-full-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="run-2sls-regression-on-full-dataset">Run 2SLS Regression on Full Dataset</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>full_fit_2sls <span class="ot">&lt;-</span> <span class="fu">feols</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  voted_24 <span class="sc">~</span> </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    gender <span class="sc">+</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    age <span class="sc">+</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    target_geography_state <span class="sc">+</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    voted_22 <span class="sc">+</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    voted_20 <span class="sc">+</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    voted_p22 <span class="sc">+</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    voted_p20 <span class="sc">+</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    race <span class="sc">+</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    ts_tsmart_presidential_general_turnout_score <span class="sc">+</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    ts_tsmart_presidential_general_turnout_score_sq <span class="sc">+</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    ts_tsmart_partisan_score <span class="sc">+</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    ts_tsmart_partisan_score_sq <span class="sc">+</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    urbanicity <span class="sc">+</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    ts_tsmart_college_graduate_score <span class="sc">|</span>  </span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># IV part: </span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    exp_contacted <span class="sc">~</span> treat,</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> full_clean_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="print-full-dataset-regression-results" class="level2">
+<h2 class="anchored" data-anchor-id="print-full-dataset-regression-results">Print Full Dataset Regression Results</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(full_fit_2sls) <span class="sc">%&gt;%</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 52%">
+<col style="width: 11%">
+<col style="width: 10%">
+<col style="width: 14%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">term</th>
+<th style="text-align: right;">estimate</th>
+<th style="text-align: right;">std.error</th>
+<th style="text-align: right;">statistic</th>
+<th style="text-align: right;">p.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">(Intercept)</td>
+<td style="text-align: right;">0.2263035</td>
+<td style="text-align: right;">0.0026404</td>
+<td style="text-align: right;">85.7088477</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">fit_exp_contacted</td>
+<td style="text-align: right;">-0.0230141</td>
+<td style="text-align: right;">0.0236534</td>
+<td style="text-align: right;">-0.9729722</td>
+<td style="text-align: right;">0.3305672</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">genderWomen</td>
+<td style="text-align: right;">0.0270018</td>
+<td style="text-align: right;">0.0004207</td>
+<td style="text-align: right;">64.1875357</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">age</td>
+<td style="text-align: right;">-0.0016665</td>
+<td style="text-align: right;">0.0000178</td>
+<td style="text-align: right;">-93.5334997</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">target_geography_stateFL</td>
+<td style="text-align: right;">0.0007126</td>
+<td style="text-align: right;">0.0011859</td>
+<td style="text-align: right;">0.6008821</td>
+<td style="text-align: right;">0.5479185</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">target_geography_stateGA</td>
+<td style="text-align: right;">0.0084316</td>
+<td style="text-align: right;">0.0009855</td>
+<td style="text-align: right;">8.5559461</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">target_geography_stateMI</td>
+<td style="text-align: right;">0.0047106</td>
+<td style="text-align: right;">0.0009993</td>
+<td style="text-align: right;">4.7137672</td>
+<td style="text-align: right;">0.0000024</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">target_geography_stateMissing</td>
+<td style="text-align: right;">-0.1872825</td>
+<td style="text-align: right;">0.0021680</td>
+<td style="text-align: right;">-86.3865537</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">target_geography_stateNC</td>
+<td style="text-align: right;">0.0258623</td>
+<td style="text-align: right;">0.0010549</td>
+<td style="text-align: right;">24.5169083</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">target_geography_stateNV</td>
+<td style="text-align: right;">-0.1253570</td>
+<td style="text-align: right;">0.0011188</td>
+<td style="text-align: right;">-112.0491282</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">target_geography_stateOH</td>
+<td style="text-align: right;">0.0383269</td>
+<td style="text-align: right;">0.0010294</td>
+<td style="text-align: right;">37.2311412</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">target_geography_statePA</td>
+<td style="text-align: right;">-0.0060633</td>
+<td style="text-align: right;">0.0009187</td>
+<td style="text-align: right;">-6.5998843</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">target_geography_stateWI</td>
+<td style="text-align: right;">-0.0640028</td>
+<td style="text-align: right;">0.0014097</td>
+<td style="text-align: right;">-45.4021293</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">target_geography_stateTargeted CD</td>
+<td style="text-align: right;">-0.0162693</td>
+<td style="text-align: right;">0.0010326</td>
+<td style="text-align: right;">-15.7558859</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">target_geography_stateOther</td>
+<td style="text-align: right;">-0.0202564</td>
+<td style="text-align: right;">0.0024924</td>
+<td style="text-align: right;">-8.1273925</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">voted_22TRUE</td>
+<td style="text-align: right;">0.1651839</td>
+<td style="text-align: right;">0.0006414</td>
+<td style="text-align: right;">257.5184103</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">voted_20TRUE</td>
+<td style="text-align: right;">0.0576452</td>
+<td style="text-align: right;">0.0006976</td>
+<td style="text-align: right;">82.6327613</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">voted_p22TRUE</td>
+<td style="text-align: right;">0.0224801</td>
+<td style="text-align: right;">0.0007101</td>
+<td style="text-align: right;">31.6575698</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">voted_p20TRUE</td>
+<td style="text-align: right;">0.0048408</td>
+<td style="text-align: right;">0.0005724</td>
+<td style="text-align: right;">8.4565578</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">raceBlack</td>
+<td style="text-align: right;">-0.0557570</td>
+<td style="text-align: right;">0.0005338</td>
+<td style="text-align: right;">-104.4591083</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">raceLatino</td>
+<td style="text-align: right;">-0.0119433</td>
+<td style="text-align: right;">0.0006326</td>
+<td style="text-align: right;">-18.8787462</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">raceOther</td>
+<td style="text-align: right;">-0.0340628</td>
+<td style="text-align: right;">0.0009563</td>
+<td style="text-align: right;">-35.6206148</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ts_tsmart_presidential_general_turnout_score</td>
+<td style="text-align: right;">0.0065923</td>
+<td style="text-align: right;">0.0000620</td>
+<td style="text-align: right;">106.3486995</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ts_tsmart_presidential_general_turnout_score_sq</td>
+<td style="text-align: right;">-0.0000160</td>
+<td style="text-align: right;">0.0000006</td>
+<td style="text-align: right;">-24.9031436</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ts_tsmart_partisan_score</td>
+<td style="text-align: right;">-0.0004790</td>
+<td style="text-align: right;">0.0000587</td>
+<td style="text-align: right;">-8.1628904</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ts_tsmart_partisan_score_sq</td>
+<td style="text-align: right;">0.0000082</td>
+<td style="text-align: right;">0.0000004</td>
+<td style="text-align: right;">18.9598735</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">urbanicitySuburban</td>
+<td style="text-align: right;">0.0060194</td>
+<td style="text-align: right;">0.0004488</td>
+<td style="text-align: right;">13.4115493</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">urbanicityRural</td>
+<td style="text-align: right;">-0.0101290</td>
+<td style="text-align: right;">0.0006410</td>
+<td style="text-align: right;">-15.8018232</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ts_tsmart_college_graduate_score</td>
+<td style="text-align: right;">0.0012762</td>
+<td style="text-align: right;">0.0000124</td>
+<td style="text-align: right;">103.1437568</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fitstat</span>(full_fit_2sls, <span class="st">&quot;ivf&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>F-test (1st stage), exp_contacted: stat = 13,488.2, p &lt; 2.2e-16, on 1 and 4,608,125 DoF.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>full_ame_contacted <span class="ot">&lt;-</span> <span class="fu">avg_slopes</span>(full_fit_2sls, <span class="at">variables =</span> <span class="st">&quot;exp_contacted&quot;</span>, <span class="at">conf_level =</span> .<span class="dv">9</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>full_preds <span class="ot">&lt;-</span> <span class="fu">avg_predictions</span>(full_fit_2sls, <span class="at">variables =</span> <span class="st">&quot;exp_contacted&quot;</span>, <span class="at">conf_level =</span> .<span class="dv">9</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>full_r_squared <span class="ot">&lt;-</span> <span class="fu">r2</span>(full_fit_2sls)[<span class="st">&#39;r2&#39;</span>]</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>full_n_contacted <span class="ot">&lt;-</span> <span class="fu">sum</span>(full_clean_df<span class="sc">$</span>exp_contacted)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>full_n_not_contacted <span class="ot">&lt;-</span> <span class="fu">sum</span>(full_clean_df<span class="sc">$</span>exp_contacted <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>full_ame_contacted_clean <span class="ot">&lt;-</span> full_ame_contacted <span class="sc">%&gt;%</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(<span class="at">regression_type =</span> <span class="st">&quot;2SLS full&quot;</span>,</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>            <span class="at">condition =</span> <span class="st">&quot;contacted - not contacted&quot;</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>            <span class="at">n =</span> <span class="cn">NA</span>,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>            <span class="at">predicted_prob =</span> estimate,</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>            <span class="at">se =</span> std.error,</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>            <span class="at">ci_low_90 =</span> conf.low,</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>            <span class="at">ci_high_90 =</span> conf.high,</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>            <span class="at">p_value =</span> p.value,</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>            <span class="at">adj_rsq =</span> full_r_squared)</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>full_preds_clean <span class="ot">&lt;-</span> full_preds <span class="sc">%&gt;%</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(<span class="at">regression_type =</span> <span class="st">&quot;2SLS full&quot;</span>,</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>            <span class="at">condition =</span> <span class="fu">if_else</span>(exp_contacted <span class="sc">==</span> <span class="dv">1</span>, <span class="st">&quot;contacted&quot;</span>, <span class="st">&quot;not contacted&quot;</span>),</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>            <span class="at">n =</span> <span class="fu">if_else</span>(exp_contacted <span class="sc">==</span> <span class="dv">1</span>, full_n_contacted, full_n_not_contacted),</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>            <span class="at">predicted_prob =</span> estimate,</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>            <span class="at">se =</span> std.error,</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>            <span class="at">ci_low_90 =</span> conf.low,</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>            <span class="at">ci_high_90 =</span> conf.high,</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>            <span class="at">p_value =</span> p.value,</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>            <span class="at">adj_rsq =</span> r_squared)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="combine-results-into-1-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="combine-results-into-1-dataset">Combine Results into 1 Dataset</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>all_regression_results <span class="ot">&lt;-</span> regression_results <span class="sc">%&gt;%</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(regression_type <span class="sc">==</span> <span class="st">&quot;OLS&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(ame_contacted_clean) <span class="sc">%&gt;%</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(preds_clean) <span class="sc">%&gt;%</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(full_ame_contacted_clean) <span class="sc">%&gt;%</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(full_preds_clean)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(all_regression_results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
@@ -3543,19 +3844,51 @@ vertical-align: -.125em;
 <td style="text-align: right;">0.0000000</td>
 <td style="text-align: right;">0.0533793</td>
 </tr>
+<tr class="odd">
+<td style="text-align: left;">2SLS full</td>
+<td style="text-align: left;">contacted - not contacted</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">-0.0230141</td>
+<td style="text-align: right;">0.0236534</td>
+<td style="text-align: right;">-0.0619204</td>
+<td style="text-align: right;">0.0158923</td>
+<td style="text-align: right;">0.3305671</td>
+<td style="text-align: right;">0.1647344</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2SLS full</td>
+<td style="text-align: left;">not contacted</td>
+<td style="text-align: right;">4491573</td>
+<td style="text-align: right;">0.6817912</td>
+<td style="text-align: right;">0.0006301</td>
+<td style="text-align: right;">0.6807548</td>
+<td style="text-align: right;">0.6828276</td>
+<td style="text-align: right;">0.0000000</td>
+<td style="text-align: right;">0.0533793</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2SLS full</td>
+<td style="text-align: left;">contacted</td>
+<td style="text-align: right;">116581</td>
+<td style="text-align: right;">0.6587772</td>
+<td style="text-align: right;">0.0230468</td>
+<td style="text-align: right;">0.6208685</td>
+<td style="text-align: right;">0.6966858</td>
+<td style="text-align: right;">0.0000000</td>
+<td style="text-align: right;">0.0533793</td>
+</tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>The F test is significant and above 10, which is good. That means that the IV setup is reasonable; The instrument strongly predicts contact and is not a weak instrument. Being contacted does not significantly increase turnout, though the best estimate is that it increases turnout by 1.4pp.</p>
 </section>
 <section id="save-regression-results" class="level2">
 <h2 class="anchored" data-anchor-id="save-regression-results">Save Regression Results</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">s3write_using</span>(<span class="at">x =</span> all_regression_results, </span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>              <span class="at">FUN =</span> write_csv, </span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/regression_results.csv&quot;</span>, </span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">bucket =</span> <span class="st">&quot;tmc-research-projects&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">s3write_using</span>(<span class="at">x =</span> all_regression_results, </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>              <span class="at">FUN =</span> write_csv, </span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">object =</span> <span class="st">&quot;p080_moveon_impact_analysis/regression_results.csv&quot;</span>, </span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">bucket =</span> <span class="st">&quot;tmc-research-projects&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 
