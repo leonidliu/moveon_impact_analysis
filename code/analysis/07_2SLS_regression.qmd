@@ -144,7 +144,7 @@ full_fit_2sls <- feols(
 
 ## Print Full Dataset Regression Results
 
-```{r}
+```{r print_full_dataset_results}
 tidy(full_fit_2sls) %>%
   kable()
 
@@ -183,9 +183,10 @@ full_preds_clean <- full_preds %>%
 
 ## Combine Results into 1 Dataset
 
-```{r}
+```{r combine_results}
 all_regression_results <- regression_results %>%
-  filter(regression_type == "OLS") %>%
+  filter(regression_type != "2SLS") %>%
+  filter(regression_type != "2SLS full") %>%
   bind_rows(ame_contacted_clean) %>%
   bind_rows(preds_clean) %>%
   bind_rows(full_ame_contacted_clean) %>%
@@ -196,7 +197,7 @@ kable(all_regression_results)
 
 ## Save Regression Results
 
-```{r}
+```{r save_results}
 s3write_using(x = all_regression_results, 
               FUN = write_csv, 
               object = "p080_moveon_impact_analysis/regression_results.csv", 
