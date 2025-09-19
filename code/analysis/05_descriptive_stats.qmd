@@ -42,6 +42,32 @@ full_clean_df <- s3read_using(
 
 ```
 
+## Memo Table 1.
+
+tibble(audience = c("Full Universe", "Subset"),
+
+N = c(nrow(full_clean_df), nrow(clean_df)),
+
+\`Treatment N\` = sum(full_clean_df\$treat==1), sum(clean_df\$treat == 1)
+
+)
+
+```{r}
+tibble(audience = c("Full Universe", "Subset"),
+       N = c(nrow(full_clean_df), nrow(clean_df)),
+       `Treatment N` = c(sum(full_clean_df$treat==1), sum(clean_df$treat == 1)),
+       `Phone Attempted Individuals` = c(full_clean_df %>% filter(treat == 1,  any_phone_attempted == 1) %>% nrow(),
+       clean_df %>% filter(treat == 1, any_phone_attempted == 1) %>% nrow()),
+       `Phone Contacted Individuals` = c(full_clean_df %>% filter(treat == 1,  any_phone_contacted == 1) %>% nrow(),
+       clean_df %>% filter(treat == 1, any_phone_contacted == 1) %>% nrow()),
+              `Postcard Contacted Individuals` = c(full_clean_df %>% filter(treat == 1,  postcard_contacted == 1) %>% nrow(),
+       clean_df %>% filter(treat == 1, postcard_contacted == 1) %>% nrow())
+) %>%
+  pivot_longer(-audience, names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = audience, values_from = value) %>%
+  kable(format.args = list(big.mark = ","))
+```
+
 ## Overall Universe Descriptives
 
 #### Demographics
