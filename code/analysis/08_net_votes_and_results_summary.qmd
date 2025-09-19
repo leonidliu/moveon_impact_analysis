@@ -104,8 +104,8 @@ ai_estimates <- tribble(
       "Phone",    phone_n,        "Medium",  0.3,
       "Phone",    phone_n,        "High",    1.0,
       "Both",     both_n,         "Low",     0.1,
-      "Both",     both_n,         "Medium",  0.5,
-      "Both",     both_n,         "High",    2.0) %>%
+      "Both",     both_n,         "Medium",  0.3,
+      "Both",     both_n,         "High",    1.0) %>%
   mutate(`Net Votes`  = `Tot. Effect` * `N Attempted` / 100,
          `Net Dem Votes` = `Net Votes` * adjustment_factor)
 ```
@@ -135,6 +135,20 @@ ai_estimates %>%
   mutate(Scenario = factor(Scenario, levels = c("Low", "Medium", "High"))) %>%
   mutate(`Tot. Effect` = round(`Tot. Effect`, digits = 2)) %>%
   arrange(Mode, Scenario) %>%
+  kable(format.args = list(big.mark = ","))
+```
+
+#### Alternative way of calculating "impact scenarios"
+
+Instead of using attempts, you can just use contacts with different effect sizes
+
+```{r}
+ai_estimates2 <- tibble(Scenario = c("Low", "Medium", "High"),
+                       `Effect Size` = c(.005, .01, .05)) %>%
+  mutate(`Net Votes` = sum(full_clean_df$exp_contacted) * `Effect Size`) %>%
+  mutate(`Net Dem Votes` = `Net Votes` * adjustment_factor)
+
+ai_estimates2 %>%
   kable(format.args = list(big.mark = ","))
 ```
 
@@ -234,8 +248,8 @@ twosls_net_dem_votes <- num_contacted * twosls_effect_size * adjustment_factor
 full_twosls_net_dem_votes <- num_contacted * full_twosls_effect_size * adjustment_factor
 ols_net_dem_votes <- treatment_n * ols_effect_size * adjustment_factor
 full_ols_net_dem_votes <- treatment_n * full_ols_effect_size * adjustment_factor
-ai_net_dem_votes <- ai_estimates %>%
-  filter(Mode == "Total", Scenario == "Medium") %>%
+ai_net_dem_votes <- ai_estimates2 %>%
+  filter(Scenario == "Medium") %>%
   pull(`Net Dem Votes`)
 
 # Low 90 CI Net Dem Votes
@@ -243,8 +257,8 @@ twosls_low_net_dem_votes <- num_contacted * twosls_effect_size_low * adjustment_
 full_twosls_low_net_dem_votes <- num_contacted * full_twosls_effect_size_low * adjustment_factor
 ols_low_net_dem_votes <- treatment_n * ols_effect_size_low * adjustment_factor
 full_ols_low_net_dem_votes <- treatment_n * full_ols_effect_size_low * adjustment_factor
-ai_low_net_dem_votes <- ai_estimates %>%
-  filter(Mode == "Total", Scenario == "Low") %>%
+ai_low_net_dem_votes <- ai_estimates2 %>%
+  filter(Scenario == "Low") %>%
   pull(`Net Dem Votes`)
 
 # 2sls High 90 CI Net Dem Votes
@@ -252,8 +266,8 @@ twosls_high_net_dem_votes <- num_contacted * twosls_effect_size_high * adjustmen
 full_twosls_high_net_dem_votes <- num_contacted * full_twosls_effect_size_high * adjustment_factor
 ols_high_net_dem_votes <- treatment_n * ols_effect_size_high * adjustment_factor
 full_ols_high_net_dem_votes <- treatment_n * full_ols_effect_size_high * adjustment_factor
-ai_high_net_dem_votes <- ai_estimates %>%
-  filter(Mode == "Total", Scenario == "High") %>%
+ai_high_net_dem_votes <- ai_estimates2 %>%
+  filter(Scenario == "High") %>%
   pull(`Net Dem Votes`)
 ```
 
