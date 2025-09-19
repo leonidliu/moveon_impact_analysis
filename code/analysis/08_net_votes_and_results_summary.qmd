@@ -164,6 +164,7 @@ treatment_n <- sum(full_clean_df$treat==1)
 ```
 
 #### Pull OLS Results (full)
+
 ```{r ols_effects_full}
 full_ols_effect_size <- regression_results %>% 
   filter(regression_type== "OLS full",
