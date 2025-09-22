@@ -48,7 +48,7 @@ regression_results <- s3read_using(
   FUN = read_csv,
   bucket = bucket,
   object = "p080_moveon_impact_analysis/regression_results.csv") %>%
-  filter(regression_type != "ITT full")
+  filter(regression_type != "OLS full")
 ```
 
 ## Clean Data
