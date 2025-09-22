@@ -42,15 +42,7 @@ full_clean_df <- s3read_using(
 
 ```
 
-## Memo Table 1.
-
-tibble(audience = c("Full Universe", "Subset"),
-
-N = c(nrow(full_clean_df), nrow(clean_df)),
-
-\`Treatment N\` = sum(full_clean_df\$treat==1), sum(clean_df\$treat == 1)
-
-)
+## Memo Table 1
 
 ```{r}
 tibble(audience = c("Full Universe", "Subset"),
@@ -66,6 +58,18 @@ tibble(audience = c("Full Universe", "Subset"),
   pivot_longer(-audience, names_to = "metric", values_to = "value") %>%
   pivot_wider(names_from = audience, values_from = value) %>%
   kable(format.args = list(big.mark = ","))
+```
+
+## Memo Table 3
+
+```{r}
+count(full_clean_df, treatment, name = "Full Universe") %>%
+  left_join(count(clean_df, treatment, name = "22 Election Skippers")) %>%
+  bind_rows(summarise(.data = ., across(where(is.numeric), sum, na.rm = TRUE),
+            treatment = "Total", .groups = "drop")) %>%
+  mutate(across(where(is.numeric),
+                ~ paste0(.x, " (", round(100 * .x / ifelse(treatment == "Total", .x, sum(.x[treatment != "Total"], na.rm = TRUE)), 1), "%)"))) %>%
+  kable()
 ```
 
 ## Overall Universe Descriptives
