@@ -1,0 +1,149 @@
+---
+title: "6B ITT Regression (Full Dataset)"
+author: "Andy Zack"
+date: "`r Sys.Date()`"
+format: html
+self-contained: true
+editor: source
+execute:
+  echo: true
+---
+
+This code runs the ITT regression on the full dataset.
+
+Given that this is an ITT analysis, it does not produce separate analyses for postcard vs. regular phone vs GOTV phone. There are also no subgroup analyses due to the fact that it is so underpowered and that the topline result is null.
+
+## Load Packages
+
+```{r packages}
+#| warning: false
+
+library(tidyverse)
+library(aws.s3)
+library(here)
+library(kableExtra)
+library(scales)
+library(marginaleffects)
+library(broom)
+```
+
+## Other Setup
+
+```{r other_setup}
+Sys.setenv("AWS_ACCESS_KEY_ID" = Sys.getenv("TMC_s3_access_key"),
+           "AWS_SECRET_ACCESS_KEY" = Sys.getenv("TMC_s3_secret_key"))
+
+bucket = "tmc-research-projects"
+```
+
+## Load Data
+
+```{r load_data}
+clean_df <- s3read_using(
+  FUN = read_rds,
+  bucket = bucket,
+  object = "p080_moveon_impact_analysis/full_clean_df.rds")
+
+regression_results <- s3read_using(
+  FUN = read_csv,
+  bucket = bucket,
+  object = "p080_moveon_impact_analysis/regression_results.csv") %>%
+  filter(regression_type != "OLS full")
+```
+
+## Clean Data
+
+This section drops the \~3,000 people that could not be matched to the voterfile. We could instead just count them as not voted. It is so few people that it probably does not matter either way.
+
+This section also cleans up some of the factors that have no people in them. That is what `droplevels()` does. I think this should make the `marginaleffects::avg_predictions()` run smoothly without error.
+
+```{r make_model_df}
+model_df <- clean_df %>%
+  select(treat,
+         voted_24,
+         gender,
+         age,
+         target_geography_state,
+         voted_22,
+         voted_20,
+         voted_p22,
+         voted_p20,
+         race,
+         ts_tsmart_presidential_general_turnout_score,
+         ts_tsmart_presidential_general_turnout_score_sq,
+         ts_tsmart_partisan_score,
+         ts_tsmart_partisan_score_sq,
+         urbanicity,
+         ts_tsmart_college_graduate_score) %>%
+  droplevels()
+  
+
+nrow(clean_df) 
+nrow(model_df)
+```
+
+## Impute Missing
+
+No columns have missing data. Everything that had been missing was imputed in the clean data step.
+
+```{r check_missing}
+model_df %>%
+  summarise(across(everything(), ~sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
+  filter(na_count > 0) %>%
+  kable()
+```
+
+## Run Model
+
+```{r run_model}
+itt_model <- lm(formula = voted_24 ~ .,
+                 data = model_df)
+
+tidy(itt_model) %>% kable()
+```
+
+## Get Model Results
+
+```{r get_model_results}
+# calculate treatment and control group sizes for table
+n_treat <- sum(model_df[["treat"]] == 1)
+n_control <- sum(model_df[["treat"]] == 0)
+
+# calculate mcfadden adjusted r^2
+mcfadden_adj_r2 <- as.numeric(pscl::pR2(itt_model)["McFadden"])
+
+# run marginal effects
+ame_treat <- avg_slopes(itt_model, variables = "treat", conf_level = .9)
+preds <- avg_predictions(itt_model, variables = "treat", conf_level = .9)
+
+# clean up all results into one pretty table
+full_itt_regression_results <- bind_rows(ame_treat, preds) %>%
+  as_tibble() %>%
+  transmute(regression_type = "OLS full", 
+         condition = case_when(treat == 0 ~ "control",
+                               treat == 1 ~ "treatment",
+                               TRUE ~ "treatment - control"),
+         n = case_when(treat == 0 ~ n_control,
+                       treat == 1 ~ n_treat),
+         predicted_prob = estimate,
+         se = std.error,
+         ci_low_90 = conf.low,
+         ci_high_90 = conf.high,
+         p_value = p.value,
+         adj_rsq = mcfadden_adj_r2) 
+
+kable(full_itt_regression_results)
+```
+
+## Save Regression Results
+
+```{r save_results}
+regression_results <- regression_results %>%
+  bind_rows(full_itt_regression_results)
+
+s3write_using(x = regression_results, 
+              FUN = write_csv, 
+              object = "p080_moveon_impact_analysis/regression_results.csv", 
+              bucket = "tmc-research-projects")
+```

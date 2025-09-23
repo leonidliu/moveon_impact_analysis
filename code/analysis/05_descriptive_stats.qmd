@@ -42,6 +42,36 @@ full_clean_df <- s3read_using(
 
 ```
 
+## Memo Table 1
+
+```{r}
+tibble(audience = c("Full Universe", "Subset"),
+       N = c(nrow(full_clean_df), nrow(clean_df)),
+       `Treatment N` = c(sum(full_clean_df$treat==1), sum(clean_df$treat == 1)),
+       `Phone Attempted Individuals` = c(full_clean_df %>% filter(treat == 1,  any_phone_attempted == 1) %>% nrow(),
+       clean_df %>% filter(treat == 1, any_phone_attempted == 1) %>% nrow()),
+       `Phone Contacted Individuals` = c(full_clean_df %>% filter(treat == 1,  any_phone_contacted == 1) %>% nrow(),
+       clean_df %>% filter(treat == 1, any_phone_contacted == 1) %>% nrow()),
+              `Postcard Contacted Individuals` = c(full_clean_df %>% filter(treat == 1,  postcard_contacted == 1) %>% nrow(),
+       clean_df %>% filter(treat == 1, postcard_contacted == 1) %>% nrow())
+) %>%
+  pivot_longer(-audience, names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = audience, values_from = value) %>%
+  kable(format.args = list(big.mark = ","))
+```
+
+## Memo Table 3
+
+```{r}
+count(full_clean_df, treatment, name = "Full Universe") %>%
+  left_join(count(clean_df, treatment, name = "22 Election Skippers")) %>%
+  bind_rows(summarise(.data = ., across(where(is.numeric), sum, na.rm = TRUE),
+            treatment = "Total", .groups = "drop")) %>%
+  mutate(across(where(is.numeric),
+                ~ paste0(.x, " (", round(100 * .x / ifelse(treatment == "Total", .x, sum(.x[treatment != "Total"], na.rm = TRUE)), 1), "%)"))) %>%
+  kable()
+```
+
 ## Overall Universe Descriptives
 
 #### Demographics
@@ -114,8 +144,8 @@ full_clean_df %>%
 ```{r treatment_group_sizes}
 full_clean_df %>%
   mutate(treat_outreach = case_when(treat == 0 ~ "Control",
-                                    postcard_attempted + phone_attempted == 2 ~ "Phone + Postcard",
-                                    phone_attempted == 1 ~ "Phone Only",
+                                    postcard_attempted + any_phone_attempted == 2 ~ "Phone + Postcard",
+                                    any_phone_attempted == 1 ~ "Phone Only",
                                     postcard_attempted == 1 ~ "Postcard Only",
                                     TRUE ~ "Not Attempted")) %>%
   mutate(treat_outreach = factor(treat_outreach, levels = c("Control",
@@ -271,4 +301,19 @@ clean_df %>%
 
 ```{r}
 sum(clean_df$postcard_attempted)
+```
+
+## Compare Attempt and Contacts in Audiences
+
+```{r total_rates}
+tibble(Audience = c("Full Audience", "800K subset"),
+       `Treatment Size` = c(sum(full_clean_df$treat == 1),
+                            sum(clean_df$treat == 1)),
+       Attempts = c(sum(full_clean_df$exp_attempted[full_clean_df$treat == 1]),
+                    sum(clean_df$exp_attempted[clean_df$treat == 1])),
+       Contacts = c(sum(full_clean_df$exp_contacted[full_clean_df$treat == 1]),
+                    sum(clean_df$exp_contacted[clean_df$treat == 1])))%>%
+  mutate(`% Attempted` = percent(Attempts / `Treatment Size`, accuracy = .01),
+         `% Contacted` = percent(Contacts / `Treatment Size`, accuracy = .01)) %>%
+  kable(format.args = list(big.mark = ","))
 ```
